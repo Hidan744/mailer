@@ -1,7 +1,13 @@
-import sodium from "sodium-native";
+import crypto from "node:crypto";
 
 // Шифрование паролей от почтовых ящиков перед сохранением в БД (не храним plaintext).
+// AES-256-GCM из встроенного модуля Node — сознательно без нативных addon-библиотек
+// (sodium-native не собирается под Alpine/musl, на котором работает Docker-образ).
 // Ключ — 32 байта в hex, из переменной окружения CREDENTIALS_ENC_KEY (см. .env.example).
+
+const ALGORITHM = "aes-256-gcm";
+const IV_LENGTH = 12; // рекомендованный размер nonce для GCM
+const AUTH_TAG_LENGTH = 16;
 
 function getKey(): Buffer {
   const hex = process.env.CREDENTIALS_ENC_KEY;
@@ -16,21 +22,25 @@ function getKey(): Buffer {
 
 export function encryptSecret(plaintext: string): string {
   const key = getKey();
-  const message = Buffer.from(plaintext, "utf8");
-  const nonce = Buffer.alloc(sodium.crypto_secretbox_NONCEBYTES);
-  sodium.randombytes_buf(nonce);
-  const ciphertext = Buffer.alloc(message.length + sodium.crypto_secretbox_MACBYTES);
-  sodium.crypto_secretbox_easy(ciphertext, message, nonce, key);
-  return Buffer.concat([nonce, ciphertext]).toString("base64");
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return Buffer.concat([iv, authTag, ciphertext]).toString("base64");
 }
 
 export function decryptSecret(encoded: string): string {
   const key = getKey();
   const raw = Buffer.from(encoded, "base64");
-  const nonce = raw.subarray(0, sodium.crypto_secretbox_NONCEBYTES);
-  const ciphertext = raw.subarray(sodium.crypto_secretbox_NONCEBYTES);
-  const message = Buffer.alloc(ciphertext.length - sodium.crypto_secretbox_MACBYTES);
-  const ok = sodium.crypto_secretbox_open_easy(message, ciphertext, nonce, key);
-  if (!ok) throw new Error("Не удалось расшифровать секрет — неверный ключ или повреждённые данные");
-  return message.toString("utf8");
+  const iv = raw.subarray(0, IV_LENGTH);
+  const authTag = raw.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
+  const ciphertext = raw.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(authTag);
+  try {
+    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return plaintext.toString("utf8");
+  } catch {
+    throw new Error("Не удалось расшифровать секрет — неверный ключ или повреждённые данные");
+  }
 }
