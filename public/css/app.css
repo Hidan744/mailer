@@ -1,7 +1,230 @@
-body { background: #f8f9fa; }
-.letter-preview { background: #fff; border: 1px solid #dee2e6; border-radius: .25rem; padding: 1rem; max-height: 600px; overflow: auto; }
-.badge-status-draft { background: #6c757d; }
-.badge-status-running { background: #198754; }
-.badge-status-paused_for_edit { background: #fd7e14; }
-.badge-status-paused_manual { background: #6c757d; }
-.badge-status-done { background: #0d6efd; }
+/* ==========================================================================
+   Design system — "деловая переписка": фирменный бланк как визуальный язык.
+   PT Serif для заголовков/бренда (официальные документы), Manrope для текста.
+   ========================================================================== */
+
+:root {
+  --ink: #1c2333;
+  --ink-soft: #565f74;
+  --ink-faint: #8991a3;
+  --paper: #f4f1e9;
+  --paper-card: #fffdf8;
+  --rule: #ddd5c3;
+  --rule-soft: #ece7da;
+  --accent: #8a2432;
+  --accent-hover: #6f1c28;
+  --accent-soft: #f6e6e4;
+  --navy: #1a2233;
+  --navy-soft: #2a3448;
+  --ok: #3f7d5c;
+  --ok-soft: #e3efe8;
+  --warn: #b8792c;
+  --warn-soft: #f6ead7;
+  --info: #2c4a7c;
+  --info-soft: #e4ebf4;
+  --radius: 3px;
+  --shadow-card: 0 1px 2px rgba(28, 35, 51, 0.06), 0 1px 12px rgba(28, 35, 51, 0.04);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+h1, h2, h3, h4, .brand-text, .card-header {
+  font-family: "PT Serif", Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+h1 { font-weight: 700; color: var(--ink); }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+/* ---- Topbar ---------------------------------------------------------- */
+
+.topbar { background: var(--navy); color: #eee9dd; }
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0.9rem 1rem;
+}
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  color: #f5f1e6 !important;
+  text-decoration: none !important;
+  font-family: "PT Serif", Georgia, serif;
+}
+.brand-mark {
+  font-size: 1.4rem;
+  font-style: italic;
+  color: #c98a6b;
+  border: 1px solid rgba(245, 241, 230, 0.35);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.brand-text { font-size: 1.15rem; font-weight: 700; }
+.brand-text em { font-style: italic; font-weight: 400; opacity: 0.75; margin-left: 0.15em; }
+
+.nav-links { display: flex; gap: 1.5rem; margin-right: auto; }
+.nav-link {
+  color: rgba(245, 241, 230, 0.72) !important;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none !important;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-link:hover { color: #f5f1e6 !important; }
+.nav-link.is-active { color: #f5f1e6 !important; border-bottom-color: var(--accent); }
+
+.topbar-user { display: flex; align-items: center; gap: 0.75rem; }
+.user-chip {
+  font-size: 0.82rem;
+  color: rgba(245, 241, 230, 0.65);
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(245, 241, 230, 0.35);
+  color: #f5f1e6;
+  border-radius: var(--radius);
+  padding: 0.3rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-ghost:hover { background: rgba(245, 241, 230, 0.1); border-color: rgba(245, 241, 230, 0.6); }
+
+.topbar-rule {
+  height: 4px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.15), transparent);
+}
+
+.page { padding-top: 2.25rem; padding-bottom: 4rem; }
+
+/* ---- Cards ------------------------------------------------------------ */
+
+.card {
+  background: var(--paper-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--rule);
+  font-weight: 700;
+  font-size: 1.02rem;
+  color: var(--ink);
+  padding: 0.85rem 1.1rem;
+}
+.card-body { padding: 1.1rem; }
+
+/* ---- Buttons ------------------------------------------------------------ */
+
+.btn {
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.5rem 1.1rem;
+  border-width: 1px;
+  transition: transform 0.08s ease, box-shadow 0.15s ease, background 0.15s, border-color 0.15s, color 0.15s;
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fdf8f5;
+}
+.btn-primary:hover, .btn-primary:focus {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fdf8f5;
+}
+
+.btn-success { background: var(--ok); border-color: var(--ok); }
+.btn-success:hover { background: #2f6146; border-color: #2f6146; }
+
+.btn-warning { background: var(--warn); border-color: var(--warn); color: #fff; }
+.btn-warning:hover { background: #98611f; border-color: #98611f; color: #fff; }
+
+.btn-outline-primary { color: var(--accent); border-color: var(--accent); }
+.btn-outline-primary:hover { background: var(--accent); border-color: var(--accent); }
+
+.btn-outline-secondary, .btn-outline-danger { border-color: var(--rule); color: var(--ink-soft); }
+.btn-outline-secondary:hover { background: var(--ink); border-color: var(--ink); }
+.btn-outline-danger { color: var(--accent); }
+.btn-outline-danger:hover { background: var(--accent); border-color: var(--accent); }
+
+/* ---- Tables ------------------------------------------------------------ */
+
+.table {
+  --bs-table-bg: transparent;
+  color: var(--ink);
+}
+.table > thead {
+  font-family: "PT Serif", Georgia, serif;
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+.table > thead > tr > th { border-bottom: 2px solid var(--ink); padding-bottom: 0.6rem; }
+.table > :not(caption) > * > * { border-bottom-color: var(--rule-soft); padding: 0.75rem 0.6rem; }
+.table.bg-white { background: var(--paper-card) !important; border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; }
+
+/* ---- Forms ------------------------------------------------------------ */
+
+.form-control, .form-select {
+  background: var(--paper-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--ink);
+  padding: 0.55rem 0.75rem;
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.form-label { font-weight: 600; font-size: 0.88rem; color: var(--ink-soft); margin-bottom: 0.3rem; }
+.form-text { color: var(--ink-faint); }
+.form-check-input:checked { background-color: var(--accent); border-color: var(--accent); }
+
+/* ---- Badges (статусы кампаний) ---------------------------------------- */
+
+.badge { font-weight: 600; font-size: 0.72rem; letter-spacing: 0.03em; padding: 0.35em 0.65em; border-radius: 999px; }
+.badge-status-draft { background: #e6e1d3 !important; color: var(--ink-soft) !important; }
+.badge-status-running { background: var(--ok-soft) !important; color: var(--ok) !important; }
+.badge-status-paused_for_edit { background: var(--warn-soft) !important; color: var(--warn) !important; }
+.badge-status-paused_manual { background: #e6e1d3 !important; color: var(--ink-soft) !important; }
+.badge-status-done { background: var(--info-soft) !important; color: var(--info) !important; }
+
+/* ---- Alerts ------------------------------------------------------------ */
+
+.alert-info { background: var(--info-soft); border: 1px solid #c6d5ea; color: var(--info); border-radius: var(--radius); }
+.alert-success { background: var(--ok-soft); border: 1px solid #c8ddce; color: var(--ok); border-radius: var(--radius); }
+.alert-danger { background: var(--accent-soft); border: 1px solid #e6c3bf; color: var(--accent); border-radius: var(--radius); }
+.alert-warning { background: var(--warn-soft); border: 1px solid #ecd3ab; color: var(--warn); border-radius: var(--radius); }
+
+/* ---- Misc ------------------------------------------------------------ */
+
+.letter-preview { background: #eae6db; border: 1px solid var(--rule); border-radius: var(--radius); padding: 1.25rem; max-height: 640px; overflow: auto; }
+code { color: var(--accent); background: var(--accent-soft); padding: 0.1em 0.4em; border-radius: 3px; font-size: 0.85em; }

@@ -4,28 +4,35 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Рассылка именных писем</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css" />
   <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-    <div class="container">
-      <a class="navbar-brand" href="/">Рассылка писем</a>
-      <div class="navbar-nav">
-        <a class="nav-link <%= currentPath === '/' ? 'active' : '' %>" href="/">Кампании</a>
-        <a class="nav-link <%= currentPath.startsWith('/settings') ? 'active' : '' %>" href="/settings">Настройки</a>
-      </div>
-      <div class="d-flex align-items-center gap-2 ms-auto">
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark">№</span>
+        <span class="brand-text">Рассылка<em>писем</em></span>
+      </a>
+      <nav class="nav-links">
+        <a class="nav-link <%= currentPath === '/' ? 'is-active' : '' %>" href="/">Кампании</a>
+        <a class="nav-link <%= currentPath.startsWith('/settings') ? 'is-active' : '' %>" href="/settings">Настройки</a>
+      </nav>
+      <div class="topbar-user">
         <% if (typeof currentUsername !== 'undefined' && currentUsername) { %>
-          <span class="navbar-text text-light small"><%= currentUsername %></span>
+          <span class="user-chip"><%= currentUsername %></span>
           <form method="post" action="/logout" class="m-0">
-            <button class="btn btn-sm btn-outline-light">Выйти</button>
+            <button class="btn-ghost">Выйти</button>
           </form>
         <% } %>
       </div>
     </div>
-  </nav>
-  <main class="container pb-5">
+    <div class="topbar-rule"></div>
+  </header>
+  <main class="container page">
     <% if (typeof flash !== 'undefined' && flash) { %>
       <div class="alert alert-info"><%= flash %></div>
     <% } %>
