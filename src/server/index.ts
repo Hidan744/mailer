@@ -17,6 +17,12 @@ import { startScheduler } from "../scheduler";
 
 const app = express();
 
+// За приложением стоит Caddy, который проксирует по обычному HTTP внутри Docker-сети
+// (сам TLS снимает Caddy). Без этого express-session не увидит соединение как secure
+// (X-Forwarded-Proto) и молча не поставит cookie сессии при cookie.secure=true —
+// вход технически проходит, но браузер остаётся без сессии и его возвращает на /login.
+app.set("trust proxy", 1);
+
 app.set("views", path.join(__dirname, "..", "templates", "views"));
 app.set("view engine", "ejs");
 app.use(expressLayouts);
