@@ -1,0 +1,174 @@
+// Схема БД для приложения веерной рассылки именных писем.
+// Вся инфраструктура (эта БД, приложение, почтовый сервер) размещается на территории РФ.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CampaignStatus {
+  draft
+  running
+  paused_for_edit
+  paused_manual
+  done
+}
+
+enum LetterStatus {
+  queued
+  sent
+  failed
+  bounced
+}
+
+model Campaign {
+  id          String         @id @default(uuid())
+  name        String
+  status      CampaignStatus @default(draft)
+
+  subject     String
+  bodyHtml    String
+
+  // окно/скорость отправки — заполняются дефолтами из настроек, но переопределяемы для кампании
+  sendWindowStart String    @default("09:00")
+  sendWindowEnd   String    @default("17:00")
+  lunchStart      String    @default("12:00")
+  lunchEnd        String    @default("13:00")
+  intervalMinutes Int       @default(5)
+  timezone        String    @default("Asia/Yekaterinburg")
+
+  // чек-пойнт ротации текста (п.5 ТЗ)
+  rotationThreshold  Int    @default(75)
+  sentSinceLastEdit  Int    @default(0)
+
+  letterheadId String?
+  letterhead   LetterheadTemplate? @relation(fields: [letterheadId], references: [id])
+
+  numberingId  String?
+  numbering    NumberingConfig? @relation(fields: [numberingId], references: [id])
+
+  mailAccountId String?
+  mailAccount   MailAccountConfig? @relation(fields: [mailAccountId], references: [id])
+
+  recipients  Recipient[]
+  letters     Letter[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LetterheadTemplate {
+  id            String   @id @default(uuid())
+  name          String
+  headerImageUrl String?
+  footerImageUrl String?
+  footerContactsText String?
+  createdAt     DateTime @default(now())
+  campaigns     Campaign[]
+}
+
+model Recipient {
+  id          String   @id @default(uuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  company        String
+  position       String   // Должность: Директор / Генеральный директор / ...
+  surnameInitials String  // Фамилия И.О. — для шапки
+  fullNamePatronymic String // Имя Отчество — для обращения "Уважаемый ..."
+  email          String
+
+  extra          Json?    // произвольные доп. колонки из Excel
+
+  letters        Letter[]
+
+  createdAt      DateTime @default(now())
+
+  @@index([campaignId])
+}
+
+model NumberingConfig {
+  id           String   @id @default(uuid())
+  name         String
+  template     String   @default("{prefix}/{counter}") // напр. "0210/{counter}"
+  prefix       String   @default("")
+  counter      Int      @default(1)
+  resetPeriod  String   @default("never") // never | yearly
+  lastResetYear Int?
+  campaigns    Campaign[]
+}
+
+model MailAccountConfig {
+  id            String   @id @default(uuid())
+  name          String
+  fromEmail     String
+  fromName      String?
+
+  smtpHost      String
+  smtpPort      Int      @default(465)
+  smtpSecure    Boolean  @default(true)
+  smtpUser      String
+  smtpPasswordEnc String // зашифровано, см. src/lib/crypto.ts
+
+  imapHost      String?
+  imapPort      Int?     @default(993)
+  imapSecure    Boolean  @default(true)
+  imapUser      String?
+  imapPasswordEnc String?
+
+  createdAt     DateTime @default(now())
+  campaigns     Campaign[]
+}
+
+model Letter {
+  id            String   @id @default(uuid())
+  campaignId    String
+  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  recipientId   String
+  recipient     Recipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  outgoingNumber String?
+  sentDate       String?
+  messageId      String?  @unique
+  trackingToken  String   @unique @default(uuid())
+
+  status        LetterStatus @default(queued)
+  errorMessage  String?
+
+  subjectSnapshot String?
+  bodySnapshot    String?
+
+  queuedAt      DateTime @default(now())
+  sentAt        DateTime?
+  openedAt      DateTime?
+  repliedAt     DateTime?
+
+  @@index([campaignId])
+  @@index([recipientId])
+  @@index([status])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Suppression {
+  email     String   @id
+  reason    String   @default("unsubscribed")
+  createdAt DateTime @default(now())
+}
+
+model AuditEvent {
+  id        String   @id @default(uuid())
+  actor     String   @default("system")
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,137 @@
+<h1 class="h3 mb-4">Настройки</h1>
+
+<div class="card mb-4">
+  <div class="card-header">Почтовый ящик (SMTP/IMAP)</div>
+  <div class="card-body">
+    <p class="text-muted small">
+      Подключите свой корпоративный ящик — приложение не привязано к конкретному провайдеру.
+      Рекомендуются сервисы с серверами в РФ: Yandex 360 для бизнеса (smtp.yandex.ru / imap.yandex.ru),
+      VK WorkMail. Для входящих ответов нужен доступ по IMAP к той же папке "Входящие".
+    </p>
+    <table class="table table-sm">
+      <thead><tr><th>Название</th><th>From</th><th>SMTP</th><th>IMAP</th><th></th></tr></thead>
+      <tbody>
+        <% mailAccounts.forEach(function(a) { %>
+        <tr>
+          <td><%= a.name %></td>
+          <td><%= a.fromEmail %></td>
+          <td><%= a.smtpHost %>:<%= a.smtpPort %></td>
+          <td><%= a.imapHost || '—' %></td>
+          <td>
+            <form method="post" action="/settings/mail-accounts/<%= a.id %>/delete" onsubmit="return confirm('Удалить?')">
+              <button class="btn btn-sm btn-outline-danger">Удалить</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#mailForm">+ Добавить ящик</button>
+    <form id="mailForm" class="collapse mt-3" method="post" action="/settings/mail-accounts">
+      <div class="row g-2">
+        <div class="col-md-4"><input class="form-control" name="name" placeholder="Название (например, Основной)" required /></div>
+        <div class="col-md-4"><input class="form-control" name="fromEmail" type="email" placeholder="From email" required /></div>
+        <div class="col-md-4"><input class="form-control" name="fromName" placeholder="Имя отправителя" /></div>
+        <div class="col-md-4"><input class="form-control" name="smtpHost" placeholder="SMTP host" required /></div>
+        <div class="col-md-2"><input class="form-control" name="smtpPort" placeholder="Порт" value="465" required /></div>
+        <div class="col-md-2 form-check mt-2"><input class="form-check-input" type="checkbox" name="smtpSecure" checked /> <label class="form-check-label">TLS</label></div>
+        <div class="col-md-4"><input class="form-control" name="smtpUser" placeholder="SMTP логин" required /></div>
+        <div class="col-md-4"><input class="form-control" name="smtpPassword" type="password" placeholder="SMTP пароль" required /></div>
+        <div class="col-md-4"><input class="form-control" name="imapHost" placeholder="IMAP host (для чтения ответов)" /></div>
+        <div class="col-md-2"><input class="form-control" name="imapPort" placeholder="Порт" value="993" /></div>
+        <div class="col-md-2 form-check mt-2"><input class="form-check-input" type="checkbox" name="imapSecure" checked /> <label class="form-check-label">TLS</label></div>
+        <div class="col-md-4"><input class="form-control" name="imapUser" placeholder="IMAP логин" /></div>
+        <div class="col-md-4"><input class="form-control" name="imapPassword" type="password" placeholder="IMAP пароль" /></div>
+      </div>
+      <button class="btn btn-primary mt-3">Сохранить ящик</button>
+    </form>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">Фирменный бланк (колонтитулы)</div>
+  <div class="card-body">
+    <table class="table table-sm">
+      <thead><tr><th>Название</th><th>Шапка</th><th>Подвал</th><th></th></tr></thead>
+      <tbody>
+        <% letterheads.forEach(function(l) { %>
+        <tr>
+          <td><%= l.name %></td>
+          <td><% if (l.headerImageUrl) { %><img src="<%= l.headerImageUrl %>" height="30" /><% } %></td>
+          <td><% if (l.footerImageUrl) { %><img src="<%= l.footerImageUrl %>" height="30" /><% } %></td>
+          <td>
+            <form method="post" action="/settings/letterheads/<%= l.id %>/delete" onsubmit="return confirm('Удалить?')">
+              <button class="btn btn-sm btn-outline-danger">Удалить</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#letterheadForm">+ Добавить бланк</button>
+    <form id="letterheadForm" class="collapse mt-3" method="post" action="/settings/letterheads" enctype="multipart/form-data">
+      <div class="row g-2">
+        <div class="col-md-12"><input class="form-control" name="name" placeholder="Название бланка" required /></div>
+        <div class="col-md-6">
+          <label class="form-label small">Верхний колонтитул — логотип и реквизиты (jpg)</label>
+          <input class="form-control" type="file" name="headerImage" accept="image/jpeg" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small">Нижний колонтитул — картинка (jpg), опционально</label>
+          <input class="form-control" type="file" name="footerImage" accept="image/jpeg" />
+        </div>
+        <div class="col-md-12">
+          <label class="form-label small">Контактная информация компании (текст в подвале письма)</label>
+          <textarea class="form-control" name="footerContactsText" rows="3" placeholder="ООО «Компания», тел. +7 (...) ..., email, адрес"></textarea>
+        </div>
+      </div>
+      <button class="btn btn-primary mt-3">Сохранить бланк</button>
+    </form>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">Нумерация исходящих писем</div>
+  <div class="card-body">
+    <p class="text-muted small">
+      Шаблон номера — как в образце "Исх. № 0210/186": укажите префикс (например "0210") и
+      шаблон "{prefix}/{counter}". Счётчик увеличивается на 1 с каждым отправленным письмом.
+    </p>
+    <table class="table table-sm">
+      <thead><tr><th>Название</th><th>Шаблон</th><th>Префикс</th><th>Счётчик</th><th></th></tr></thead>
+      <tbody>
+        <% numberings.forEach(function(n) { %>
+        <tr>
+          <td><%= n.name %></td>
+          <td><code><%= n.template %></code></td>
+          <td><%= n.prefix %></td>
+          <td><%= n.counter %></td>
+          <td>
+            <form method="post" action="/settings/numbering/<%= n.id %>/delete" onsubmit="return confirm('Удалить?')">
+              <button class="btn btn-sm btn-outline-danger">Удалить</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#numberingForm">+ Добавить схему нумерации</button>
+    <form id="numberingForm" class="collapse mt-3" method="post" action="/settings/numbering">
+      <div class="row g-2">
+        <div class="col-md-3"><input class="form-control" name="name" placeholder="Название" required /></div>
+        <div class="col-md-3"><input class="form-control" name="template" placeholder="{prefix}/{counter}" value="{prefix}/{counter}" /></div>
+        <div class="col-md-2"><input class="form-control" name="prefix" placeholder="Префикс (0210)" /></div>
+        <div class="col-md-2"><input class="form-control" name="counter" type="number" placeholder="Старт счётчика" value="1" /></div>
+        <div class="col-md-2">
+          <select class="form-select" name="resetPeriod">
+            <option value="never">Не сбрасывать</option>
+            <option value="yearly">Сбрасывать раз в год</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary mt-3">Сохранить</button>
+    </form>
+  </div>
+</div>
+
+<script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

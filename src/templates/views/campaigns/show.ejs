@@ -1,0 +1,106 @@
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h1 class="h3 mb-1"><%= campaign.name %></h1>
+    <span class="badge badge-status-<%= campaign.status %>"><%= campaign.status %></span>
+  </div>
+  <a class="btn btn-outline-secondary" href="/campaigns/<%= campaign.id %>/report.xlsx">Скачать отчёт (xlsx)</a>
+</div>
+
+<% if (typeof error !== 'undefined' && error) { %>
+  <div class="alert alert-danger"><%= error %></div>
+<% } %>
+<% if (query.imported) { %>
+  <div class="alert alert-success">Импортировано получателей: <%= query.imported %></div>
+<% } %>
+<% if (query.error) { %>
+  <div class="alert alert-danger"><%= query.error %></div>
+<% } %>
+
+<% if (campaign.status === 'paused_for_edit') { %>
+<div class="card border-warning mb-4">
+  <div class="card-header bg-warning-subtle">
+    Достигнут порог в <%= campaign.rotationThreshold %> писем с последней правки текста (п.5 ТЗ) —
+    рассылка приостановлена. Отредактируйте тему/текст (или оставьте как есть) и продолжите.
+  </div>
+  <div class="card-body">
+    <form method="post" action="/campaigns/<%= campaign.id %>/confirm-edit">
+      <div class="mb-3">
+        <label class="form-label">Тема письма</label>
+        <input class="form-control" name="subject" value="<%= campaign.subject %>" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Текст письма</label>
+        <textarea class="form-control" name="bodyHtml" rows="8" required><%= campaign.bodyHtml %></textarea>
+      </div>
+      <button class="btn btn-warning">Подтвердить и продолжить рассылку</button>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<div class="row mb-4">
+  <div class="col-md-8">
+    <div class="card mb-3">
+      <div class="card-header">Получатели: <%= recipientsCount %></div>
+      <div class="card-body">
+        <form method="post" action="/campaigns/<%= campaign.id %>/recipients/import" enctype="multipart/form-data" class="row g-2">
+          <div class="col-auto"><input class="form-control" type="file" name="file" accept=".xlsx" required /></div>
+          <div class="col-auto"><button class="btn btn-outline-primary">Импортировать из Excel</button></div>
+        </form>
+        <div class="form-text mt-2">
+          Колонки: Компания, Должность, Фамилия И.О., Имя Отчество, Email (плюс любые доп. колонки).
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Статистика</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td>В очереди</td><td><%= stats.queued %></td></tr>
+          <tr><td>Отправлено</td><td><%= stats.sent %></td></tr>
+          <tr><td>Ошибок</td><td><%= stats.failed %></td></tr>
+          <tr><td>Открыто</td><td><%= stats.opened %></td></tr>
+          <tr><td>Получено ответов</td><td><%= stats.replied %></td></tr>
+          <tr><td>Писем с последней правки текста</td><td><%= campaign.sentSinceLastEdit %> / <%= campaign.rotationThreshold %></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <% if (campaign.status === 'draft' || campaign.status === 'paused_manual') { %>
+        <form method="post" action="/campaigns/<%= campaign.id %>/start">
+          <button class="btn btn-success" <%= recipientsCount === 0 ? 'disabled' : '' %>>Запустить рассылку</button>
+        </form>
+      <% } %>
+      <% if (campaign.status === 'running') { %>
+        <form method="post" action="/campaigns/<%= campaign.id %>/pause">
+          <button class="btn btn-outline-secondary">Приостановить</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">Настройки</div>
+      <div class="card-body small">
+        <p><b>Ящик:</b> <%= campaign.mailAccount ? campaign.mailAccount.name : '— не выбран —' %></p>
+        <p><b>Бланк:</b> <%= campaign.letterhead ? campaign.letterhead.name : '— не выбран —' %></p>
+        <p><b>Нумерация:</b> <%= campaign.numbering ? campaign.numbering.name : '— не выбрана —' %></p>
+        <p><b>Окно отправки:</b> <%= campaign.sendWindowStart %>–<%= campaign.sendWindowEnd %>, обед <%= campaign.lunchStart %>–<%= campaign.lunchEnd %></p>
+        <p><b>Интервал:</b> раз в <%= campaign.intervalMinutes %> мин</p>
+        <p><b>Часовой пояс:</b> <%= campaign.timezone %></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if (previewHtml) { %>
+<div class="card">
+  <div class="card-header">Предпросмотр письма (на примере первого получателя)</div>
+  <div class="card-body">
+    <iframe class="letter-preview w-100" style="height:600px;border:0;" srcdoc="<%- previewHtml.replace(/\"/g, '&quot;') %>"></iframe>
+  </div>
+</div>
+<% } %>

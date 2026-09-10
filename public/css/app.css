@@ -1,0 +1,7 @@
+body { background: #f8f9fa; }
+.letter-preview { background: #fff; border: 1px solid #dee2e6; border-radius: .25rem; padding: 1rem; max-height: 600px; overflow: auto; }
+.badge-status-draft { background: #6c757d; }
+.badge-status-running { background: #198754; }
+.badge-status-paused_for_edit { background: #fd7e14; }
+.badge-status-paused_manual { background: #6c757d; }
+.badge-status-done { background: #0d6efd; }

@@ -1,0 +1,91 @@
+<h1 class="h3 mb-4">Новая кампания</h1>
+
+<form method="post" action="/campaigns">
+  <div class="mb-3">
+    <label class="form-label">Название кампании (для себя, получатели его не видят)</label>
+    <input class="form-control" name="name" required />
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Тема письма</label>
+    <input class="form-control" name="subject" required />
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Текст письма (тело) — не будет меняться в ходе рассылки</label>
+    <textarea class="form-control" name="bodyHtml" rows="10" required placeholder="Текст письма. Можно использовать простой HTML: <p>, <br>, <b>."></textarea>
+    <div class="form-text">
+      Шапка (исх. №, дата, должность/компания/ФИО получателя, обращение) добавляется автоматически —
+      сюда впишите только содержательный текст письма.
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label class="form-label">Почтовый ящик для отправки</label>
+      <select class="form-select" name="mailAccountId" required>
+        <option value="">— выбрать —</option>
+        <% mailAccounts.forEach(function(a) { %>
+          <option value="<%= a.id %>"><%= a.name %> (<%= a.fromEmail %>)</option>
+        <% }) %>
+      </select>
+      <div class="form-text">Нет ящика? <a href="/settings">Добавить в настройках</a>.</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Фирменный бланк</label>
+      <select class="form-select" name="letterheadId">
+        <option value="">— без бланка —</option>
+        <% letterheads.forEach(function(l) { %>
+          <option value="<%= l.id %>"><%= l.name %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Схема нумерации исх. №</label>
+      <select class="form-select" name="numberingId" required>
+        <option value="">— выбрать —</option>
+        <% numberings.forEach(function(n) { %>
+          <option value="<%= n.id %>"><%= n.name %> (<%= n.template %>)</option>
+        <% }) %>
+      </select>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Расписание отправки</div>
+    <div class="card-body row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Начало окна</label>
+        <input class="form-control" name="sendWindowStart" value="09:00" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Конец окна</label>
+        <input class="form-control" name="sendWindowEnd" value="17:00" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Обед с</label>
+        <input class="form-control" name="lunchStart" value="12:00" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Обед до</label>
+        <input class="form-control" name="lunchEnd" value="13:00" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Интервал между письмами, мин</label>
+        <input class="form-control" type="number" name="intervalMinutes" value="5" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Часовой пояс</label>
+        <input class="form-control" name="timezone" value="Asia/Yekaterinburg" />
+        <div class="form-text">Asia/Yekaterinburg = время Перми (МСК+2)</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Правка текста каждые N писем</label>
+        <input class="form-control" type="number" name="rotationThreshold" value="75" min="50" max="100" />
+        <div class="form-text">50–100 по ТЗ</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary">Создать кампанию</button>
+</form>
