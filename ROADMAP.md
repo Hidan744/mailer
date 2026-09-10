@@ -5,23 +5,28 @@
 
 ## Этап 1. Инфраструктура — решения/покупки заказчика
 
-- [ ] 1.1 Арендовать VPS **в России** (Timeweb Cloud / Selectel / VK Cloud / Yandex Cloud),
-      Ubuntu 22.04, конфигурация как у текущего сервера (1 vCPU/2ГБ) достаточно.
-      Текущий сервер (AMS9, Амстердам) — только для тестов на выдуманных данных,
-      для боевой рассылки не годится (152-ФЗ, локализация персональных данных).
-- [ ] 1.2 В DNS на reg.ru добавить A-запись поддомена (например `mailer.вашдомен.рф`)
-      на IP нового сервера.
+- [x] 1.1 VPS в России — reg.ru VPS, Москва-2, Ubuntu 22.04, 1 vCPU/2ГБ/20ГБ,
+      IP `194.67.124.161`. Отдельно от старого сервера в Амстердаме и от vinakovlab.
+- [x] 1.2 DNS A-запись `mailer.vinakovlab.online` → `194.67.124.161` (reg.ru/ISPmanager).
+      Реальная публикация на авторитетных NS заняла больше часа — это нормально
+      для reg.ru, не бага в настройке.
 - [ ] 1.3 Получить SMTP/IMAP реквизиты корпоративной почты (Yandex 360 для бизнеса,
       VK WorkMail или уже имеющийся ящик).
 
 ## Этап 2. Развёртывание приложения
 
-- [ ] 2.1 SSH на новый сервер, `git clone` репозитория.
-- [ ] 2.2 `sudo bash deploy/setup-server.sh` — ставит Docker, swap, файрвол.
-- [ ] 2.3 `cp .env.example .env`, заполнить: пароль БД, `CREDENTIALS_ENC_KEY`,
-      `SESSION_SECRET`, `DOMAIN`/`PUBLIC_BASE_URL`, `ADMIN_USERNAME`/`ADMIN_PASSWORD`.
-- [ ] 2.4 `docker compose up -d --build` — Caddy сам получит HTTPS-сертификат.
-- [ ] 2.5 Зайти на `https://ваш-поддомен/login`, сменить пароль администратора.
+- [x] 2.1 Код развёрнут из отдельного репозитория **github.com/Hidan744/mailer**
+      (не из hidan744/111 — вынесли по ходу, проще для сервера: `git clone` без
+      указания ветки).
+- [x] 2.2 `sudo bash deploy/setup-server.sh` — Docker, 2 ГБ swap, файрвол (80/443/22).
+- [x] 2.3 `.env` заполнен: пароль БД, `CREDENTIALS_ENC_KEY`, `SESSION_SECRET`,
+      `DOMAIN=mailer.vinakovlab.online`, `ADMIN_USERNAME=admin`.
+- [x] 2.4 `docker compose up -d --build`. По пути всплыли и исправлены два бага
+      сборки под Alpine/musl: Prisma-движку не хватало OpenSSL (добавлен `apk add
+      openssl` в Dockerfile), `sodium-native` не собирался вовсе (заменён на
+      встроенный `node:crypto`, AES-256-GCM) — оба фикса запушены в оба репозитория.
+- [x] 2.5 `https://mailer.vinakovlab.online/login` открывается с валидным HTTPS
+      (сертификат Let's Encrypt получен автоматически через Caddy).
 
 ## Этап 3. DNS для доставляемости почты
 
