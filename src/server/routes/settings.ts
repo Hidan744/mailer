@@ -127,6 +127,21 @@ router.post("/numbering", async (req, res) => {
   res.redirect("/settings");
 });
 
+router.post("/numbering/:id/update", async (req, res) => {
+  const b = req.body;
+  await prisma.numberingConfig.update({
+    where: { id: req.params.id },
+    data: {
+      name: b.name,
+      template: b.template || "{prefix}/{counter}",
+      prefix: b.prefix || "",
+      counter: Number(b.counter) || 1,
+      resetPeriod: b.resetPeriod === "yearly" ? "yearly" : "never",
+    },
+  });
+  res.redirect("/settings");
+});
+
 router.post("/numbering/:id/delete", async (req, res) => {
   await prisma.numberingConfig.delete({ where: { id: req.params.id } });
   res.redirect("/settings");

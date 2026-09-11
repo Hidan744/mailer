@@ -129,9 +129,29 @@
           <td><code><%= n.template %></code></td>
           <td><%= n.prefix %></td>
           <td><%= n.counter %></td>
-          <td>
+          <td class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#editNumberingForm-<%= n.id %>">Изменить</button>
             <form method="post" action="/settings/numbering/<%= n.id %>/delete" onsubmit="return confirm('Удалить?')">
               <button class="btn btn-sm btn-outline-danger">Удалить</button>
+            </form>
+          </td>
+        </tr>
+        <tr class="collapse" id="editNumberingForm-<%= n.id %>">
+          <td colspan="5">
+            <form method="post" action="/settings/numbering/<%= n.id %>/update" class="p-2">
+              <div class="row g-2">
+                <div class="col-md-3"><input class="form-control" name="name" placeholder="Название" value="<%= n.name %>" required /></div>
+                <div class="col-md-3"><input class="form-control" name="template" placeholder="{prefix}/{counter}" value="<%= n.template %>" /></div>
+                <div class="col-md-2"><input class="form-control" name="prefix" placeholder="Префикс (0210)" value="<%= n.prefix %>" /></div>
+                <div class="col-md-2"><input class="form-control" name="counter" type="number" placeholder="Счётчик" value="<%= n.counter %>" /></div>
+                <div class="col-md-2">
+                  <select class="form-select" name="resetPeriod">
+                    <option value="never" <%= n.resetPeriod === 'never' ? 'selected' : '' %>>Не сбрасывать</option>
+                    <option value="yearly" <%= n.resetPeriod === 'yearly' ? 'selected' : '' %>>Сбрасывать раз в год</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm mt-2">Сохранить изменения</button>
             </form>
           </td>
         </tr>
