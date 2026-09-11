@@ -1,5 +1,9 @@
 <h1 class="h3 mb-4">Настройки</h1>
 
+<% if (query.error) { %>
+  <div class="alert alert-danger"><%= query.error %></div>
+<% } %>
+
 <div class="card mb-4">
   <div class="card-header">Почтовый ящик (SMTP/IMAP)</div>
   <div class="card-body">

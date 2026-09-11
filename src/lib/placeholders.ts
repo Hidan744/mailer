@@ -12,11 +12,19 @@ const PLACEHOLDER_FIELDS: Record<string, keyof PlaceholderRecipient> = {
 
 export const AVAILABLE_PLACEHOLDERS = Object.keys(PLACEHOLDER_FIELDS);
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 // Подстановка меток вида {{Компания}} в тексте письма/темы значениями получателя.
 // Неизвестные метки оставляются как есть (не ломают письмо, просто не заменяются).
-export function applyPlaceholders(text: string, recipient: PlaceholderRecipient): string {
+// escapeForHtml — экранировать подставляемое значение (нужно для тела письма, которое HTML;
+// для темы письма, где спецсимволы не нужно превращать в &amp;/&lt;, передавать false).
+export function applyPlaceholders(text: string, recipient: PlaceholderRecipient, escapeForHtml = false): string {
   return text.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (match, name: string) => {
     const field = PLACEHOLDER_FIELDS[name.trim()];
-    return field ? recipient[field] : match;
+    if (!field) return match;
+    const value = recipient[field];
+    return escapeForHtml ? escapeHtml(value) : value;
   });
 }

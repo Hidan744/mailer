@@ -48,18 +48,22 @@ async function processCampaignTick(
     return; // вне рабочего окна/обед/выходной — ничего не шлём
   }
 
+  // Интервал считаем по последнему письму С ЭТОГО ЖЕ ПОЧТОВОГО ЯЩИКА, а не только в
+  // рамках этой кампании — иначе две кампании на одном ящике, запущенные одновременно,
+  // незаметно для оператора удвоят реальную скорость отправки с него.
   const lastSent = await prisma.letter.findFirst({
-    where: { campaignId: campaign.id, status: "sent" },
+    where: { status: "sent", campaign: { mailAccountId: campaign.mailAccountId } },
     orderBy: { sentAt: "desc" },
   });
   if (lastSent?.sentAt) {
     const minutesSince = (now.getTime() - lastSent.sentAt.getTime()) / 60000;
-    if (minutesSince < campaign.intervalMinutes) return; // ещё не прошло 5 минут
+    if (minutesSince < campaign.intervalMinutes) return; // ещё не прошло нужного интервала
   }
 
-  // Пропускаем получателей, отписавшихся в ЛЮБОЙ кампании
+  // Пропускаем получателей, отписавшихся в ЛЮБОЙ кампании (регистр email не должен иметь
+  // значения — "Ivan@x.ru" и "ivan@x.ru" один и тот же адрес).
   const suppressed = await prisma.suppression.findMany({ select: { email: true } });
-  const suppressedEmails = new Set(suppressed.map((s) => s.email));
+  const suppressedEmails = new Set(suppressed.map((s) => s.email.toLowerCase()));
 
   const nextLetter = await prisma.letter.findFirst({
     where: { campaignId: campaign.id, status: "queued" },
@@ -72,7 +76,7 @@ async function processCampaignTick(
     return;
   }
 
-  if (suppressedEmails.has(nextLetter.recipient.email)) {
+  if (suppressedEmails.has(nextLetter.recipient.email.toLowerCase())) {
     await prisma.letter.update({
       where: { id: nextLetter.id },
       data: { status: "failed", errorMessage: "в списке отписавшихся" },
@@ -87,7 +91,7 @@ async function processCampaignTick(
   const unsubscribeUrl = `${publicBaseUrl}/unsubscribe/${nextLetter.trackingToken}`;
   const currentText = getCurrentVariant(campaign);
   const subject = applyPlaceholders(currentText.subject, nextLetter.recipient);
-  const body = applyPlaceholders(currentText.bodyHtml, nextLetter.recipient);
+  const body = applyPlaceholders(currentText.bodyHtml, nextLetter.recipient, true);
 
   const html = renderLetterHtml({
     campaign: { subject: currentText.subject, bodyHtml: currentText.bodyHtml },

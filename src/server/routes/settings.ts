@@ -81,6 +81,11 @@ router.post("/mail-accounts/:id/update", async (req, res) => {
 });
 
 router.post("/mail-accounts/:id/delete", async (req, res) => {
+  const inUse = await prisma.campaign.findMany({ where: { mailAccountId: req.params.id }, select: { name: true } });
+  if (inUse.length > 0) {
+    const names = inUse.map((c) => c.name).join(", ");
+    return res.redirect(`/settings?error=${encodeURIComponent(`Нельзя удалить — используется в кампании(ях): ${names}. Сначала выберите другой ящик в этих кампаниях (кнопка "Изменить").`)}`);
+  }
   await prisma.mailAccountConfig.delete({ where: { id: req.params.id } });
   res.redirect("/settings");
 });
@@ -107,6 +112,11 @@ router.post(
 );
 
 router.post("/letterheads/:id/delete", async (req, res) => {
+  const inUse = await prisma.campaign.findMany({ where: { letterheadId: req.params.id }, select: { name: true } });
+  if (inUse.length > 0) {
+    const names = inUse.map((c) => c.name).join(", ");
+    return res.redirect(`/settings?error=${encodeURIComponent(`Нельзя удалить — используется в кампании(ях): ${names}. Сначала выберите другой бланк в этих кампаниях (кнопка "Изменить").`)}`);
+  }
   await prisma.letterheadTemplate.delete({ where: { id: req.params.id } });
   res.redirect("/settings");
 });
@@ -143,6 +153,11 @@ router.post("/numbering/:id/update", async (req, res) => {
 });
 
 router.post("/numbering/:id/delete", async (req, res) => {
+  const inUse = await prisma.campaign.findMany({ where: { numberingId: req.params.id }, select: { name: true } });
+  if (inUse.length > 0) {
+    const names = inUse.map((c) => c.name).join(", ");
+    return res.redirect(`/settings?error=${encodeURIComponent(`Нельзя удалить — используется в кампании(ях): ${names}. Сначала выберите другую схему в этих кампаниях (кнопка "Изменить").`)}`);
+  }
   await prisma.numberingConfig.delete({ where: { id: req.params.id } });
   res.redirect("/settings");
 });

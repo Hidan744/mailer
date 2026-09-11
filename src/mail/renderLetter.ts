@@ -36,7 +36,7 @@ export interface RenderLetterInput {
 // Верстается таблицами (не flex/grid) — так вёрстка стабильно переживает Outlook/почтовые клиенты.
 export function renderLetterHtml(input: RenderLetterInput): string {
   const { campaign, recipient, letterhead, outgoingNumber, sentDate, trackingPixelUrl, unsubscribeUrl } = input;
-  const bodyHtml = applyPlaceholders(campaign.bodyHtml, recipient);
+  const bodyHtml = applyPlaceholders(campaign.bodyHtml, recipient, true);
 
   const headerImg = letterhead?.headerImageUrl
     ? `<tr><td style="padding:0 0 16px 0;"><img src="${esc(
