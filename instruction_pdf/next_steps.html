@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>Что осталось</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm 20mm 18mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "DejaVu Sans", Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.5;
+    color: #1b2620;
+  }
+  .cover {
+    text-align: center;
+    padding-top: 70mm;
+  }
+  .cover .mark {
+    width: 22mm; height: 22mm;
+    border-radius: 50%;
+    background: linear-gradient(155deg, #d8bd85, #ac8a52 70%);
+    color: #0e2b21;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13mm; font-weight: bold;
+    margin: 0 auto 8mm;
+  }
+  .cover h1 { font-size: 20pt; margin: 0 0 4mm 0; color: #0e2b21; }
+  .cover .sub { font-size: 12pt; color: #55625a; }
+  .cover .date { margin-top: 8mm; font-size: 10pt; color: #8b9690; }
+  h2 {
+    font-size: 13pt;
+    color: #0e2b21;
+    margin-top: 9mm;
+    margin-bottom: 2mm;
+    border-left: 3px solid #ac8a52;
+    padding-left: 3mm;
+  }
+  p { margin: 2mm 0; }
+  ul, ol { margin: 2mm 0; padding-left: 6mm; }
+  li { margin: 1.5mm 0; }
+  table { border-collapse: collapse; width: 100%; margin: 3mm 0 4mm; }
+  th, td { text-align: left; padding: 2.2mm 3mm; vertical-align: top; font-size: 9.8pt; }
+  th { background: #0e2b21; color: #f3ecd8; font-weight: 700; }
+  tr:nth-child(even) td { background: #f1e7cf; }
+  tr:nth-child(odd) td { background: #fffdf6; }
+  td, th { border: 1px solid #dcd2b3; }
+  .summary {
+    background: #f1e7cf;
+    border-left: 3px solid #ac8a52;
+    padding: 4mm 5mm;
+    margin-top: 8mm;
+    font-size: 10.5pt;
+  }
+  .summary b { color: #0e2b21; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="mark">№</div>
+  <h1>Что осталось до боевого запуска</h1>
+  <div class="sub">Статус проекта «Инструмент рассылки именных писем»</div>
+  <div class="date">Сентябрь 2026</div>
+</div>
+
+<p>Техническая часть готова и проверена реальной отправкой (SMTP/IMAP работают, письмо доставлено, ответы и открытия отслеживаются). Осталось три группы задач: материалы от заказчика, финальные проверки и сам запуск.</p>
+
+<h2>1. Нужны материалы и решения от заказчика</h2>
+<table>
+  <tr><th>Что</th><th>Зачем</th><th>Кто делает</th></tr>
+  <tr>
+    <td>Логотип компании (jpg) + реквизиты/контакты для подвала письма</td>
+    <td>Фирменный бланк — сейчас письма уходят без логотипа</td>
+    <td>Заказчик присылает файл и текст, исполнитель загружает в Настройки</td>
+  </tr>
+  <tr>
+    <td>Реальный список получателей (Excel: Компания / Должность / Фамилия И.О. / Имя Отчество / Email)</td>
+    <td>Сейчас есть только тестовые адреса</td>
+    <td>Заказчик готовит файл по шаблону</td>
+  </tr>
+  <tr>
+    <td>Уточнение формата номера «0210/186» (что означает «0210»)</td>
+    <td>Для точной настройки автонумерации</td>
+    <td>Не блокирует запуск — номер теперь можно задать вручную для любого получателя отдельно</td>
+  </tr>
+</table>
+
+<h2>2. Финальные проверки перед боевым запуском</h2>
+<table>
+  <tr><th>Что</th><th>Статус</th></tr>
+  <tr><td>Реальная отправка через SMTP</td><td>Готово — доставлено на Yandex</td></tr>
+  <tr><td>Вёрстка письма в Gmail, Outlook</td><td>Не проверено (проверено только в Yandex)</td></tr>
+  <tr><td>Проверка на спам-оценку (mail-tester.com или аналог)</td><td>Не проверено</td></tr>
+  <tr><td>Тестовая рассылка с итоговыми данными (логотип + реальный текст + реальный список)</td><td>После получения материалов из п.1</td></tr>
+</table>
+
+<h2>3. Запуск</h2>
+<ul>
+  <li><strong>Первые 1–2 недели</strong> — небольшими партиями, не сразу вся база (прогрев ящика, чтобы не попасть в спам как новый отправитель).</li>
+  <li><strong>Дальше</strong> — по расписанию 9:00–17:00, обед 12:00–13:00, раз в 5 минут — уже настроено и работает автоматически, вмешательство не требуется.</li>
+</ul>
+
+<h2>4. Необязательно, можно уже после запуска</h2>
+<ul>
+  <li>Автотесты кода (сборка шапки, окно отправки, чек-пойнт ротации).</li>
+  <li>Регулярные бэкапы базы данных и мониторинг сервера.</li>
+</ul>
+
+<div class="summary">
+  <b>Итого для запуска в бой не хватает только:</b> логотипа/реквизитов, реального списка получателей и двух проверок (вёрстка в других почтовиках + спам-оценка). Как только заказчик присылает материалы — всё остальное делается за один день.
+</div>
+
+</body>
+</html>
