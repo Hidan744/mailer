@@ -56,6 +56,36 @@
         <div class="form-text mt-2">
           Колонки: Компания, Должность, Фамилия И.О., Имя Отчество, Email (плюс любые доп. колонки).
         </div>
+        <% if (recipients.length > 0) { %>
+        <button class="btn btn-sm btn-outline-secondary mt-3" type="button" data-bs-toggle="collapse" data-bs-target="#manualNumbers">
+          Назначить исходящие номера вручную
+        </button>
+        <div class="collapse mt-3" id="manualNumbers">
+          <form method="post" action="/campaigns/<%= campaign.id %>/recipients/numbers">
+            <table class="table table-sm">
+              <thead><tr><th>Компания</th><th>ФИО</th><th>Email</th><th>Исх. №</th></tr></thead>
+              <tbody>
+                <% recipients.forEach(function(r) { %>
+                <tr>
+                  <td><%= r.company %></td>
+                  <td><%= r.surnameInitials %></td>
+                  <td><%= r.email %></td>
+                  <td>
+                    <input class="form-control form-control-sm" style="width:140px" name="number_<%= r.id %>"
+                      value="<%= r.manualOutgoingNumber || '' %>" placeholder="авто" />
+                  </td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+            <div class="form-text mb-2">
+              Пустое поле — номер присвоится автоматически по схеме нумерации, как обычно.
+              Заполненное — уйдёт именно указанный номер, счётчик схемы для этого письма не тратится.
+            </div>
+            <button class="btn btn-primary btn-sm">Сохранить номера</button>
+          </form>
+        </div>
+        <% } %>
       </div>
     </div>
 

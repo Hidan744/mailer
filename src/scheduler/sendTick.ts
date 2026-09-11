@@ -79,7 +79,9 @@ async function processCampaignTick(
     return; // следующий тик возьмёт следующее письмо
   }
 
-  const outgoingNumber = await allocateNextNumber(campaign.numbering.id);
+  // Если для получателя задан ручной исходящий номер — используем его и не трогаем
+  // автосчётчик схемы нумерации (см. src/server/routes/campaigns.ts, /recipients/numbers).
+  const outgoingNumber = nextLetter.recipient.manualOutgoingNumber || (await allocateNextNumber(campaign.numbering.id));
   const trackingUrl = `${publicBaseUrl}/t/${nextLetter.trackingToken}.gif`;
   const unsubscribeUrl = `${publicBaseUrl}/unsubscribe/${nextLetter.trackingToken}`;
   const currentText = getCurrentVariant(campaign);

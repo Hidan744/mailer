@@ -111,7 +111,7 @@ router.get("/:id", async (req, res) => {
   });
   if (!campaign) return res.status(404).render("404");
 
-  const [recipientsCount, sent, opened, replied, failed, queued, bounced, campaignEmails, suppressedEmails] =
+  const [recipientsCount, sent, opened, replied, failed, queued, bounced, recipients, suppressedEmails] =
     await Promise.all([
       prisma.recipient.count({ where: { campaignId: campaign.id } }),
       prisma.letter.count({ where: { campaignId: campaign.id, status: "sent" } }),
@@ -120,16 +120,16 @@ router.get("/:id", async (req, res) => {
       prisma.letter.count({ where: { campaignId: campaign.id, status: "failed" } }),
       prisma.letter.count({ where: { campaignId: campaign.id, status: "queued" } }),
       prisma.letter.count({ where: { campaignId: campaign.id, bouncedAt: { not: null } } }),
-      prisma.recipient.findMany({ where: { campaignId: campaign.id }, select: { email: true } }),
+      prisma.recipient.findMany({ where: { campaignId: campaign.id }, orderBy: { createdAt: "asc" } }),
       prisma.suppression.findMany({ select: { email: true } }),
     ]);
 
   // Сколько получателей ЭТОЙ кампании отписались (глобально, по email) — отдельно от общего
   // списка отписавшихся в Настройках, тут именно в разрезе конкретной кампании.
   const suppressedSet = new Set(suppressedEmails.map((s) => s.email.toLowerCase()));
-  const unsubscribed = campaignEmails.filter((r) => suppressedSet.has(r.email.toLowerCase())).length;
+  const unsubscribed = recipients.filter((r) => suppressedSet.has(r.email.toLowerCase())).length;
 
-  const sampleRecipient = await prisma.recipient.findFirst({ where: { campaignId: campaign.id } });
+  const sampleRecipient = recipients[0];
   let previewHtml: string | null = null;
   if (sampleRecipient) {
     const currentText = getCurrentVariant(campaign);
@@ -137,7 +137,8 @@ router.get("/:id", async (req, res) => {
       campaign: { subject: currentText.subject, bodyHtml: currentText.bodyHtml },
       recipient: sampleRecipient,
       letterhead: campaign.letterhead,
-      outgoingNumber: campaign.numbering ? `${campaign.numbering.prefix}/…` : "…",
+      outgoingNumber:
+        sampleRecipient.manualOutgoingNumber || (campaign.numbering ? `${campaign.numbering.prefix}/…` : "…"),
       sentDate: new Date(),
       trackingPixelUrl: "#",
       unsubscribeUrl: "#",
@@ -147,6 +148,7 @@ router.get("/:id", async (req, res) => {
 
   res.render("campaigns/show", {
     campaign,
+    recipients,
     recipientsCount,
     stats: { sent, opened, replied, failed, queued, bounced, unsubscribed },
     previewHtml,
@@ -181,6 +183,23 @@ router.post("/:id/recipients/import", upload.single("file"), async (req, res) =>
   const warningParam = allWarnings.length > 0 ? `&warning=${encodeURIComponent(allWarnings.join("; "))}` : "";
 
   res.redirect(`/campaigns/${campaign.id}?imported=${newRecipients.length}${warningParam}`);
+});
+
+// Ручные исходящие номера по получателям (например, у компании уже есть свой номер
+// входящего документа) — не трогает автосчётчик схемы нумерации для таких получателей.
+router.post("/:id/recipients/numbers", async (req, res) => {
+  const b = req.body;
+  const recipients = await prisma.recipient.findMany({ where: { campaignId: req.params.id }, select: { id: true } });
+  await Promise.all(
+    recipients.map((r) => {
+      const raw = (b[`number_${r.id}`] ?? "").toString().trim();
+      return prisma.recipient.update({
+        where: { id: r.id },
+        data: { manualOutgoingNumber: raw || null },
+      });
+    })
+  );
+  res.redirect(`/campaigns/${req.params.id}`);
 });
 
 router.post("/:id/start", async (req, res) => {
