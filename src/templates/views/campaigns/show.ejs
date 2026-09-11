@@ -78,6 +78,11 @@
           <button class="btn btn-outline-secondary">Приостановить</button>
         </form>
       <% } %>
+      <% if (stats.failed > 0) { %>
+        <form method="post" action="/campaigns/<%= campaign.id %>/retry-failed">
+          <button class="btn btn-warning">Повторить ошибки (<%= stats.failed %>)</button>
+        </form>
+      <% } %>
     </div>
   </div>
 

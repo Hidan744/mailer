@@ -130,6 +130,20 @@ router.post("/:id/resume", async (req, res) => {
   res.redirect(`/campaigns/${req.params.id}`);
 });
 
+// Возврат в очередь писем, не ушедших из-за временной ошибки (например недоступность SMTP) —
+// без этого единственный способ повторить отправку был вручную править БД.
+router.post("/:id/retry-failed", async (req, res) => {
+  const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
+  if (!campaign) return res.status(404).render("404");
+
+  await prisma.letter.updateMany({
+    where: { campaignId: campaign.id, status: "failed" },
+    data: { status: "queued", errorMessage: null },
+  });
+  await prisma.campaign.update({ where: { id: campaign.id }, data: { status: "running" } });
+  res.redirect(`/campaigns/${campaign.id}`);
+});
+
 // Чек-пойнт ротации текста (п.5 ТЗ): оператор правит тему/текст (или подтверждает как есть)
 // и явно продолжает рассылку — счётчик sentSinceLastEdit обнуляется.
 router.post("/:id/confirm-edit", async (req, res) => {
