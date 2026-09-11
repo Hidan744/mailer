@@ -12,6 +12,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
     "create-user": "tsx src/lib/createUserCli.ts",
+    "create-user:prod": "node dist/lib/createUserCli.js",
     "test": "vitest run"
   },
   "dependencies": {
