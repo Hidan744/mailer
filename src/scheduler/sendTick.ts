@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { isWithinSendingWindow } from "../lib/timeWindow";
 import { allocateNextNumber } from "../lib/numbering";
+import { getCurrentVariant, type TextVariant } from "../lib/textVariants";
 import { renderLetterHtml } from "../mail/renderLetter";
 import { sendLetter } from "../mail/sendLetter";
 
@@ -80,9 +81,10 @@ async function processCampaignTick(
   const outgoingNumber = await allocateNextNumber(campaign.numbering.id);
   const trackingUrl = `${publicBaseUrl}/t/${nextLetter.trackingToken}.gif`;
   const unsubscribeUrl = `${publicBaseUrl}/unsubscribe/${nextLetter.trackingToken}`;
+  const currentText = getCurrentVariant(campaign);
 
   const html = renderLetterHtml({
-    campaign,
+    campaign: { subject: currentText.subject, bodyHtml: currentText.bodyHtml },
     recipient: nextLetter.recipient,
     letterhead: campaign.letterhead,
     outgoingNumber,
@@ -95,7 +97,7 @@ async function processCampaignTick(
   try {
     const result = await sendLetter(campaign.mailAccount, {
       to: nextLetter.recipient.email,
-      subject: campaign.subject,
+      subject: currentText.subject,
       html,
     });
 
@@ -108,8 +110,8 @@ async function processCampaignTick(
           outgoingNumber,
           sentDate: now.toISOString().slice(0, 10),
           messageId: result.messageId,
-          subjectSnapshot: campaign.subject,
-          bodySnapshot: campaign.bodyHtml,
+          subjectSnapshot: currentText.subject,
+          bodySnapshot: currentText.bodyHtml,
         },
       }),
       prisma.campaign.update({
@@ -120,7 +122,21 @@ async function processCampaignTick(
 
     const updated = await prisma.campaign.findUniqueOrThrow({ where: { id: campaign.id } });
     if (updated.sentSinceLastEdit >= updated.rotationThreshold) {
-      await prisma.campaign.update({ where: { id: campaign.id }, data: { status: "paused_for_edit" } });
+      const variants = Array.isArray(updated.textVariants) ? (updated.textVariants as unknown as TextVariant[]) : [];
+      if (variants.length > 1) {
+        // несколько заготовленных вариантов — переключаемся на следующий по кругу
+        // автоматически, без остановки рассылки
+        await prisma.campaign.update({
+          where: { id: campaign.id },
+          data: {
+            activeVariantIndex: (updated.activeVariantIndex + 1) % variants.length,
+            sentSinceLastEdit: 0,
+          },
+        });
+      } else {
+        // запасных вариантов нет — как и раньше, останавливаемся на ручную правку
+        await prisma.campaign.update({ where: { id: campaign.id }, data: { status: "paused_for_edit" } });
+      }
     }
   } catch (err) {
     // Номер уже выделен (allocateNextNumber) — фиксируем его и на неудачной попытке,

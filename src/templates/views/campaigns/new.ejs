@@ -12,11 +12,31 @@
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Текст письма (тело) — не будет меняться в ходе рассылки</label>
+    <label class="form-label">Текст письма (тело) — вариант №1</label>
     <textarea class="form-control" name="bodyHtml" rows="10" required placeholder="Текст письма. Можно использовать простой HTML: <p>, <br>, <b>."></textarea>
     <div class="form-text">
       Шапка (исх. №, дата, должность/компания/ФИО получателя, обращение) добавляется автоматически —
       сюда впишите только содержательный текст письма.
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Доп. варианты темы/текста — для автоматической ротации (п.5 ТЗ)</div>
+    <div class="card-body">
+      <p class="text-muted small">
+        Необязательно. Если заполнить хотя бы один вариант — при достижении порога ротации
+        (ниже) кампания сама переключится на следующий вариант по кругу и продолжит слать
+        без остановки. Если не заполнять ни одного — при достижении порога рассылка
+        встанет на паузу и попросит вас поправить текст вручную (как раньше).
+      </p>
+      <% [2,3,4,5].forEach(function(i) { %>
+      <div class="mb-3 pb-3 border-bottom">
+        <label class="form-label">Тема — вариант №<%= i %></label>
+        <input class="form-control mb-2" name="variantSubject<%= i %>" />
+        <label class="form-label">Текст — вариант №<%= i %></label>
+        <textarea class="form-control" name="variantBody<%= i %>" rows="5"></textarea>
+      </div>
+      <% }) %>
     </div>
   </div>
 
@@ -80,9 +100,9 @@
         <div class="form-text">Asia/Yekaterinburg = время Перми (МСК+2)</div>
       </div>
       <div class="col-md-4">
-        <label class="form-label">Правка текста каждые N писем</label>
+        <label class="form-label">Ротация текста каждые N писем</label>
         <input class="form-control" type="number" name="rotationThreshold" value="75" min="50" max="100" />
-        <div class="form-text">50–100 по ТЗ</div>
+        <div class="form-text">50–100 по ТЗ. Что произойдёт — зависит от доп. вариантов выше.</div>
       </div>
     </div>
   </div>

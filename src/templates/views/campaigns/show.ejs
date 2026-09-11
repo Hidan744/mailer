@@ -63,6 +63,9 @@
           <tr><td>Открыто</td><td><%= stats.opened %></td></tr>
           <tr><td>Получено ответов</td><td><%= stats.replied %></td></tr>
           <tr><td>Писем с последней правки текста</td><td><%= campaign.sentSinceLastEdit %> / <%= campaign.rotationThreshold %></td></tr>
+          <% if (Array.isArray(campaign.textVariants) && campaign.textVariants.length > 1) { %>
+          <tr><td>Активный вариант текста</td><td>№<%= campaign.activeVariantIndex + 1 %> из <%= campaign.textVariants.length %> (авторотация)</td></tr>
+          <% } %>
         </table>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma";
 import { parseRecipientsXlsx } from "../../import-export/recipients";
 import { buildCampaignReportXlsx } from "../../import-export/report";
 import { renderLetterHtml } from "../../mail/renderLetter";
+import { getCurrentVariant } from "../../lib/textVariants";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -19,11 +20,22 @@ router.get("/new", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const b = req.body;
+
+  // Доп. варианты темы/текста (п.5 ТЗ) — если оператор заполнил хотя бы один,
+  // при достижении порога ротации кампания сама переключится на следующий по кругу,
+  // без остановки рассылки. Если ни одного доп. варианта нет — работает старый режим
+  // (пауза на ручную правку), см. src/scheduler/sendTick.ts.
+  const extraVariants = [2, 3, 4, 5]
+    .map((i) => ({ subject: (b[`variantSubject${i}`] || "").trim(), bodyHtml: (b[`variantBody${i}`] || "").trim() }))
+    .filter((v) => v.subject && v.bodyHtml);
+  const textVariants = extraVariants.length > 0 ? [{ subject: b.subject, bodyHtml: b.bodyHtml }, ...extraVariants] : undefined;
+
   const campaign = await prisma.campaign.create({
     data: {
       name: b.name,
       subject: b.subject,
       bodyHtml: b.bodyHtml,
+      textVariants,
       mailAccountId: b.mailAccountId || null,
       letterheadId: b.letterheadId || null,
       numberingId: b.numberingId || null,
@@ -58,8 +70,9 @@ router.get("/:id", async (req, res) => {
   const sampleRecipient = await prisma.recipient.findFirst({ where: { campaignId: campaign.id } });
   let previewHtml: string | null = null;
   if (sampleRecipient) {
+    const currentText = getCurrentVariant(campaign);
     previewHtml = renderLetterHtml({
-      campaign,
+      campaign: { subject: currentText.subject, bodyHtml: currentText.bodyHtml },
       recipient: sampleRecipient,
       letterhead: campaign.letterhead,
       outgoingNumber: campaign.numbering ? `${campaign.numbering.prefix}/…` : "…",

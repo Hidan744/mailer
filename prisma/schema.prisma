@@ -41,9 +41,13 @@ model Campaign {
   intervalMinutes Int       @default(5)
   timezone        String    @default("Asia/Yekaterinburg")
 
-  // чек-пойнт ротации текста (п.5 ТЗ)
+  // чек-пойнт ротации текста (п.5 ТЗ): каждые rotationThreshold писем — либо
+  // автоматическое переключение на следующий вариант из textVariants (если их
+  // заготовлено больше одного), либо, если вариантов нет, пауза на ручную правку
   rotationThreshold  Int    @default(75)
   sentSinceLastEdit  Int    @default(0)
+  textVariants       Json?  // [{ subject, bodyHtml }, ...] — заготовленные заранее варианты
+  activeVariantIndex Int    @default(0)
 
   letterheadId String?
   letterhead   LetterheadTemplate? @relation(fields: [letterheadId], references: [id])
