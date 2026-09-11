@@ -3,7 +3,10 @@
     <h1 class="h3 mb-1"><%= campaign.name %></h1>
     <span class="badge badge-status-<%= campaign.status %>"><%= campaign.status %></span>
   </div>
-  <a class="btn btn-outline-secondary" href="/campaigns/<%= campaign.id %>/report.xlsx">Скачать отчёт (xlsx)</a>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="/campaigns/<%= campaign.id %>/edit">Изменить</a>
+    <a class="btn btn-outline-secondary" href="/campaigns/<%= campaign.id %>/report.xlsx">Скачать отчёт (xlsx)</a>
+  </div>
 </div>
 
 <% if (typeof error !== 'undefined' && error) { %>

@@ -27,7 +27,13 @@
       <td><%= statsById[c.id].sent %></td>
       <td><%= statsById[c.id].opened %></td>
       <td><%= statsById[c.id].replied %></td>
-      <td><a href="/campaigns/<%= c.id %>" class="btn btn-sm btn-outline-secondary">Открыть</a></td>
+      <td class="d-flex gap-1">
+        <a href="/campaigns/<%= c.id %>" class="btn btn-sm btn-outline-secondary">Открыть</a>
+        <a href="/campaigns/<%= c.id %>/edit" class="btn btn-sm btn-outline-secondary">Изменить</a>
+        <form method="post" action="/campaigns/<%= c.id %>/delete" onsubmit="return confirm('Удалить кампанию «<%= c.name %>» вместе со всеми получателями и историей писем? Это необратимо.')">
+          <button class="btn btn-sm btn-outline-danger">Удалить</button>
+        </form>
+      </td>
     </tr>
     <% }) %>
   </tbody>

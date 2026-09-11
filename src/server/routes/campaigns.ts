@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Prisma } from "@prisma/client";
 import multer from "multer";
 import { prisma } from "../../lib/prisma";
 import { parseRecipientsXlsx } from "../../import-export/recipients";
@@ -49,6 +50,58 @@ router.post("/", async (req, res) => {
     },
   });
   res.redirect(`/campaigns/${campaign.id}`);
+});
+
+router.get("/:id/edit", async (req, res) => {
+  const [campaign, mailAccounts, letterheads, numberings] = await Promise.all([
+    prisma.campaign.findUnique({ where: { id: req.params.id } }),
+    prisma.mailAccountConfig.findMany(),
+    prisma.letterheadTemplate.findMany(),
+    prisma.numberingConfig.findMany(),
+  ]);
+  if (!campaign) return res.status(404).render("404");
+  const variants = Array.isArray(campaign.textVariants)
+    ? (campaign.textVariants as unknown as { subject: string; bodyHtml: string }[])
+    : [];
+  res.render("campaigns/edit", { campaign, mailAccounts, letterheads, numberings, extraVariants: variants.slice(1) });
+});
+
+router.post("/:id/edit", async (req, res) => {
+  const b = req.body;
+
+  const extraVariants = [2, 3, 4, 5]
+    .map((i) => ({ subject: (b[`variantSubject${i}`] || "").trim(), bodyHtml: (b[`variantBody${i}`] || "").trim() }))
+    .filter((v) => v.subject && v.bodyHtml);
+  const textVariants =
+    extraVariants.length > 0 ? [{ subject: b.subject, bodyHtml: b.bodyHtml }, ...extraVariants] : Prisma.JsonNull;
+
+  await prisma.campaign.update({
+    where: { id: req.params.id },
+    data: {
+      name: b.name,
+      subject: b.subject,
+      bodyHtml: b.bodyHtml,
+      textVariants,
+      mailAccountId: b.mailAccountId || null,
+      letterheadId: b.letterheadId || null,
+      numberingId: b.numberingId || null,
+      rotationThreshold: Number(b.rotationThreshold) || 75,
+      sendWindowStart: b.sendWindowStart || "09:00",
+      sendWindowEnd: b.sendWindowEnd || "17:00",
+      lunchStart: b.lunchStart || "12:00",
+      lunchEnd: b.lunchEnd || "13:00",
+      intervalMinutes: Number(b.intervalMinutes) || 5,
+      timezone: b.timezone || "Asia/Yekaterinburg",
+    },
+  });
+  res.redirect(`/campaigns/${req.params.id}`);
+});
+
+router.post("/:id/delete", async (req, res) => {
+  await prisma.campaign.delete({ where: { id: req.params.id } }).catch(() => {
+    // уже удалена/не найдена — не критично
+  });
+  res.redirect("/");
 });
 
 router.get("/:id", async (req, res) => {

@@ -1,0 +1,118 @@
+<h1 class="h3 mb-4">Изменить кампанию «<%= campaign.name %>»</h1>
+
+<form method="post" action="/campaigns/<%= campaign.id %>/edit">
+  <div class="mb-3">
+    <label class="form-label">Название кампании (для себя, получатели его не видят)</label>
+    <input class="form-control" name="name" value="<%= campaign.name %>" required />
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Тема письма</label>
+    <input class="form-control" name="subject" value="<%= campaign.subject %>" required />
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Текст письма (тело) — вариант №1</label>
+    <textarea class="form-control" name="bodyHtml" rows="10" required><%= campaign.bodyHtml %></textarea>
+    <div class="form-text">
+      Шапка (исх. №, дата, должность/компания/ФИО получателя, обращение) добавляется автоматически —
+      сюда впишите только содержательный текст письма. В тексте и теме можно использовать метки
+      <code>{{Компания}}</code>, <code>{{Должность}}</code>, <code>{{ФИО}}</code>, <code>{{Имя}}</code>,
+      <code>{{Email}}</code> — при отправке каждому получателю они заменятся его данными.
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Доп. варианты темы/текста — для автоматической ротации (п.5 ТЗ)</div>
+    <div class="card-body">
+      <p class="text-muted small">
+        Необязательно. Если заполнить хотя бы один вариант — при достижении порога ротации
+        (ниже) кампания сама переключится на следующий вариант по кругу и продолжит слать
+        без остановки. Если не заполнять ни одного — при достижении порога рассылка
+        встанет на паузу и попросит вас поправить текст вручную.
+      </p>
+      <% [2,3,4,5].forEach(function(i) {
+           const v = extraVariants[i - 2];
+      %>
+      <div class="mb-3 pb-3 border-bottom">
+        <label class="form-label">Тема — вариант №<%= i %></label>
+        <input class="form-control mb-2" name="variantSubject<%= i %>" value="<%= v ? v.subject : '' %>" />
+        <label class="form-label">Текст — вариант №<%= i %></label>
+        <textarea class="form-control" name="variantBody<%= i %>" rows="5"><%= v ? v.bodyHtml : '' %></textarea>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label class="form-label">Почтовый ящик для отправки</label>
+      <select class="form-select" name="mailAccountId" required>
+        <option value="">— выбрать —</option>
+        <% mailAccounts.forEach(function(a) { %>
+          <option value="<%= a.id %>" <%= campaign.mailAccountId === a.id ? 'selected' : '' %>><%= a.name %> (<%= a.fromEmail %>)</option>
+        <% }) %>
+      </select>
+      <div class="form-text">Нет ящика? <a href="/settings">Добавить в настройках</a>.</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Фирменный бланк</label>
+      <select class="form-select" name="letterheadId">
+        <option value="">— без бланка —</option>
+        <% letterheads.forEach(function(l) { %>
+          <option value="<%= l.id %>" <%= campaign.letterheadId === l.id ? 'selected' : '' %>><%= l.name %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Схема нумерации исх. №</label>
+      <select class="form-select" name="numberingId" required>
+        <option value="">— выбрать —</option>
+        <% numberings.forEach(function(n) { %>
+          <option value="<%= n.id %>" <%= campaign.numberingId === n.id ? 'selected' : '' %>><%= n.name %> (<%= n.template %>)</option>
+        <% }) %>
+      </select>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Расписание отправки</div>
+    <div class="card-body row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Начало окна</label>
+        <input class="form-control" name="sendWindowStart" value="<%= campaign.sendWindowStart %>" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Конец окна</label>
+        <input class="form-control" name="sendWindowEnd" value="<%= campaign.sendWindowEnd %>" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Обед с</label>
+        <input class="form-control" name="lunchStart" value="<%= campaign.lunchStart %>" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Обед до</label>
+        <input class="form-control" name="lunchEnd" value="<%= campaign.lunchEnd %>" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Интервал между письмами, мин</label>
+        <input class="form-control" type="number" name="intervalMinutes" value="<%= campaign.intervalMinutes %>" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Часовой пояс</label>
+        <input class="form-control" name="timezone" value="<%= campaign.timezone %>" />
+        <div class="form-text">Asia/Yekaterinburg = время Перми (МСК+2)</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Ротация текста каждые N писем</label>
+        <input class="form-control" type="number" name="rotationThreshold" value="<%= campaign.rotationThreshold %>" min="50" max="100" />
+        <div class="form-text">50–100 по ТЗ. Что произойдёт — зависит от доп. вариантов выше.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary">Сохранить изменения</button>
+    <a class="btn btn-outline-secondary" href="/campaigns/<%= campaign.id %>">Отмена</a>
+  </div>
+</form>
