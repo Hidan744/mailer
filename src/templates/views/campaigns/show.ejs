@@ -76,6 +76,11 @@
           <button class="btn btn-success" <%= recipientsCount === 0 ? 'disabled' : '' %>>Запустить рассылку</button>
         </form>
       <% } %>
+      <% if (campaign.status === 'done') { %>
+        <form method="post" action="/campaigns/<%= campaign.id %>/start">
+          <button class="btn btn-success" <%= recipientsCount === 0 ? 'disabled' : '' %>>Добавить получателей и продолжить</button>
+        </form>
+      <% } %>
       <% if (campaign.status === 'running') { %>
         <form method="post" action="/campaigns/<%= campaign.id %>/pause">
           <button class="btn btn-outline-secondary">Приостановить</button>
@@ -87,6 +92,9 @@
         </form>
       <% } %>
     </div>
+    <% if (campaign.status === 'done') { %>
+      <div class="form-text mt-1">Кампания уже отправлена всем прежним получателям. Импортируйте новых из Excel выше — кнопка отправит письма только им.</div>
+    <% } %>
   </div>
 
   <div class="col-md-4">

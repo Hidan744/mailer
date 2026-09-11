@@ -115,14 +115,18 @@ router.post("/:id/start", async (req, res) => {
     return res.redirect(`/campaigns/${campaign.id}?error=Укажите почтовый ящик и схему нумерации перед запуском`);
   }
 
-  const recipients = await prisma.recipient.findMany({ where: { campaignId: campaign.id } });
-  const existingLetters = await prisma.letter.count({ where: { campaignId: campaign.id } });
-  if (existingLetters === 0) {
+  // Письма создаём только тем получателям, у которых их ещё нет в этой кампании — так
+  // можно не только запустить кампанию первый раз, но и доимпортировать получателей в
+  // уже завершённую (status=done) кампанию и продолжить рассылку только для новых.
+  const recipientsWithoutLetter = await prisma.recipient.findMany({
+    where: { campaignId: campaign.id, letters: { none: {} } },
+  });
+  if (recipientsWithoutLetter.length > 0) {
     // subjectSnapshot/bodySnapshot заполняются планировщиком в момент фактической отправки —
     // это и есть тот текст, который получатель реально увидит (после возможной правки на
     // чек-пойнте ротации, см. src/scheduler).
     await prisma.letter.createMany({
-      data: recipients.map((r) => ({
+      data: recipientsWithoutLetter.map((r) => ({
         campaignId: campaign.id,
         recipientId: r.id,
       })),
