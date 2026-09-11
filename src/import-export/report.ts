@@ -8,6 +8,9 @@ export async function buildCampaignReportXlsx(campaignId: string): Promise<Excel
     include: { recipient: true },
     orderBy: { queuedAt: "asc" },
   });
+  const suppressedEmails = new Set(
+    (await prisma.suppression.findMany({ select: { email: true } })).map((s) => s.email.toLowerCase())
+  );
 
   const workbook = new ExcelJS.Workbook();
 
@@ -17,6 +20,7 @@ export async function buildCampaignReportXlsx(campaignId: string): Promise<Excel
   const replied = letters.filter((l) => l.repliedAt).length;
   const failed = letters.filter((l) => l.status === "failed").length;
   const bounced = letters.filter((l) => l.bouncedAt).length;
+  const unsubscribed = letters.filter((l) => suppressedEmails.has(l.recipient.email.toLowerCase())).length;
   summary.addRows([
     ["Кампания", campaign.name],
     ["Всего получателей", letters.length],
@@ -25,6 +29,7 @@ export async function buildCampaignReportXlsx(campaignId: string): Promise<Excel
     ["Не доставлено (отказ сервера)", bounced],
     ["Открыто", opened],
     ["Получено ответов", replied],
+    ["Отписалось", unsubscribed],
   ]);
   summary.getColumn(1).width = 28;
   summary.getColumn(2).width = 40;
@@ -43,6 +48,7 @@ export async function buildCampaignReportXlsx(campaignId: string): Promise<Excel
     "Дата открытия",
     "Получен ответ",
     "Дата ответа",
+    "Отписался",
   ]);
   details.getRow(1).font = { bold: true };
 
@@ -60,6 +66,7 @@ export async function buildCampaignReportXlsx(campaignId: string): Promise<Excel
       l.openedAt ? l.openedAt.toLocaleString("ru-RU") : "",
       l.repliedAt ? "да" : "нет",
       l.repliedAt ? l.repliedAt.toLocaleString("ru-RU") : "",
+      suppressedEmails.has(l.recipient.email.toLowerCase()) ? "да" : "нет",
     ]);
   }
   details.columns.forEach((c) => (c.width = 20));

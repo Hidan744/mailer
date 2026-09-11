@@ -58,15 +58,23 @@ router.get("/:id", async (req, res) => {
   });
   if (!campaign) return res.status(404).render("404");
 
-  const [recipientsCount, sent, opened, replied, failed, queued, bounced] = await Promise.all([
-    prisma.recipient.count({ where: { campaignId: campaign.id } }),
-    prisma.letter.count({ where: { campaignId: campaign.id, status: "sent" } }),
-    prisma.letter.count({ where: { campaignId: campaign.id, openedAt: { not: null } } }),
-    prisma.letter.count({ where: { campaignId: campaign.id, repliedAt: { not: null } } }),
-    prisma.letter.count({ where: { campaignId: campaign.id, status: "failed" } }),
-    prisma.letter.count({ where: { campaignId: campaign.id, status: "queued" } }),
-    prisma.letter.count({ where: { campaignId: campaign.id, bouncedAt: { not: null } } }),
-  ]);
+  const [recipientsCount, sent, opened, replied, failed, queued, bounced, campaignEmails, suppressedEmails] =
+    await Promise.all([
+      prisma.recipient.count({ where: { campaignId: campaign.id } }),
+      prisma.letter.count({ where: { campaignId: campaign.id, status: "sent" } }),
+      prisma.letter.count({ where: { campaignId: campaign.id, openedAt: { not: null } } }),
+      prisma.letter.count({ where: { campaignId: campaign.id, repliedAt: { not: null } } }),
+      prisma.letter.count({ where: { campaignId: campaign.id, status: "failed" } }),
+      prisma.letter.count({ where: { campaignId: campaign.id, status: "queued" } }),
+      prisma.letter.count({ where: { campaignId: campaign.id, bouncedAt: { not: null } } }),
+      prisma.recipient.findMany({ where: { campaignId: campaign.id }, select: { email: true } }),
+      prisma.suppression.findMany({ select: { email: true } }),
+    ]);
+
+  // Сколько получателей ЭТОЙ кампании отписались (глобально, по email) — отдельно от общего
+  // списка отписавшихся в Настройках, тут именно в разрезе конкретной кампании.
+  const suppressedSet = new Set(suppressedEmails.map((s) => s.email.toLowerCase()));
+  const unsubscribed = campaignEmails.filter((r) => suppressedSet.has(r.email.toLowerCase())).length;
 
   const sampleRecipient = await prisma.recipient.findFirst({ where: { campaignId: campaign.id } });
   let previewHtml: string | null = null;
@@ -87,7 +95,7 @@ router.get("/:id", async (req, res) => {
   res.render("campaigns/show", {
     campaign,
     recipientsCount,
-    stats: { sent, opened, replied, failed, queued, bounced },
+    stats: { sent, opened, replied, failed, queued, bounced, unsubscribed },
     previewHtml,
   });
 });
