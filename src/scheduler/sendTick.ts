@@ -5,6 +5,7 @@ import { getCurrentVariant, type TextVariant } from "../lib/textVariants";
 import { applyPlaceholders } from "../lib/placeholders";
 import { renderLetterHtml } from "../mail/renderLetter";
 import { sendLetter } from "../mail/sendLetter";
+import { htmlToText } from "../mail/htmlToText";
 
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
 
@@ -104,6 +105,8 @@ async function processCampaignTick(
       to: nextLetter.recipient.email,
       subject,
       html,
+      text: htmlToText(html),
+      unsubscribeUrl,
     });
 
     await prisma.$transaction([

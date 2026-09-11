@@ -24,12 +24,12 @@ router.get("/t/:token.gif", async (req, res) => {
     .catch((err) => console.error("Ошибка записи открытия письма:", err));
 });
 
-router.get("/unsubscribe/:token", async (req, res) => {
+async function suppressByToken(token: string) {
   const letter = await prisma.letter.findUnique({
-    where: { trackingToken: req.params.token },
+    where: { trackingToken: token },
     include: { recipient: true },
   });
-  if (!letter) return res.status(404).render("404");
+  if (!letter) return null;
 
   // Глобальный список отписавшихся (по email) — проверяется планировщиком перед отправкой
   // в ЛЮБОЙ кампании, не только в этой.
@@ -44,8 +44,23 @@ router.get("/unsubscribe/:token", async (req, res) => {
       data: { status: "failed", errorMessage: "unsubscribed" },
     });
   }
+  return letter;
+}
 
+router.get("/unsubscribe/:token", async (req, res) => {
+  const letter = await suppressByToken(req.params.token);
+  if (!letter) return res.status(404).render("404");
   res.render("unsubscribed", { email: letter.recipient.email });
+});
+
+// One-click отписка (RFC 8058, заголовок List-Unsubscribe-Post) — почтовые клиенты
+// (Gmail, Yahoo и т.п.) отписывают пользователя сами POST-запросом сюда, без перехода
+// по ссылке и без подтверждающей страницы. Без этого заголовок List-Unsubscribe-Post
+// в письме был бы формально заявлен, но не поддержан сервером.
+router.post("/unsubscribe/:token", async (req, res) => {
+  const letter = await suppressByToken(req.params.token);
+  if (!letter) return res.status(404).end();
+  res.status(200).end();
 });
 
 export default router;

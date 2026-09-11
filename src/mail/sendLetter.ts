@@ -20,7 +20,7 @@ export interface SendResult {
 
 export async function sendLetter(
   account: MailAccountConfig,
-  opts: { to: string; subject: string; html: string }
+  opts: { to: string; subject: string; html: string; text: string; unsubscribeUrl: string }
 ): Promise<SendResult> {
   const transport = createTransport(account);
   const info = await transport.sendMail({
@@ -28,6 +28,11 @@ export async function sendLetter(
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
+    text: opts.text,
+    headers: {
+      "List-Unsubscribe": `<${opts.unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
   });
   return { messageId: info.messageId };
 }
