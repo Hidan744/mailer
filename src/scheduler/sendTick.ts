@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma";
 import { isWithinSendingWindow } from "../lib/timeWindow";
 import { allocateNextNumber } from "../lib/numbering";
 import { getCurrentVariant, type TextVariant } from "../lib/textVariants";
+import { applyPlaceholders } from "../lib/placeholders";
 import { renderLetterHtml } from "../mail/renderLetter";
 import { sendLetter } from "../mail/sendLetter";
 
@@ -82,6 +83,8 @@ async function processCampaignTick(
   const trackingUrl = `${publicBaseUrl}/t/${nextLetter.trackingToken}.gif`;
   const unsubscribeUrl = `${publicBaseUrl}/unsubscribe/${nextLetter.trackingToken}`;
   const currentText = getCurrentVariant(campaign);
+  const subject = applyPlaceholders(currentText.subject, nextLetter.recipient);
+  const body = applyPlaceholders(currentText.bodyHtml, nextLetter.recipient);
 
   const html = renderLetterHtml({
     campaign: { subject: currentText.subject, bodyHtml: currentText.bodyHtml },
@@ -97,7 +100,7 @@ async function processCampaignTick(
   try {
     const result = await sendLetter(campaign.mailAccount, {
       to: nextLetter.recipient.email,
-      subject: currentText.subject,
+      subject,
       html,
     });
 
@@ -110,8 +113,8 @@ async function processCampaignTick(
           outgoingNumber,
           sentDate: now.toISOString().slice(0, 10),
           messageId: result.messageId,
-          subjectSnapshot: currentText.subject,
-          bodySnapshot: currentText.bodyHtml,
+          subjectSnapshot: subject,
+          bodySnapshot: body,
         },
       }),
       prisma.campaign.update({

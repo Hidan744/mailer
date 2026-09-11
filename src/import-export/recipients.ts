@@ -23,7 +23,10 @@ export interface ParsedRecipient {
 export interface ParseResult {
   recipients: ParsedRecipient[];
   errors: string[];
+  warnings: string[];
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeHeader(h: string): string {
   return h.trim().toLowerCase();
@@ -46,7 +49,7 @@ export async function parseRecipientsXlsx(buffer: Buffer): Promise<ParseResult> 
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
   const sheet = workbook.worksheets[0];
-  if (!sheet) return { recipients: [], errors: ["В файле нет листов"] };
+  if (!sheet) return { recipients: [], errors: ["В файле нет листов"], warnings: [] };
 
   const headerRow = sheet.getRow(1);
   const headers: string[] = [];
@@ -68,9 +71,12 @@ export async function parseRecipientsXlsx(buffer: Buffer): Promise<ParseResult> 
       errors.push(`Не найдена колонка для поля "${field}" — проверьте заголовки файла`);
     }
   }
-  if (errors.length > 0) return { recipients: [], errors };
+  if (errors.length > 0) return { recipients: [], errors, warnings: [] };
 
   const recipients: ParsedRecipient[] = [];
+  const seenEmails = new Set<string>();
+  let invalidCount = 0;
+  let duplicateCount = 0;
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return;
     const getCell = (field: keyof typeof COLUMN_ALIASES) => {
@@ -82,6 +88,17 @@ export async function parseRecipientsXlsx(buffer: Buffer): Promise<ParseResult> 
 
     const email = getCell("email");
     if (!email) return; // пропускаем пустые строки
+
+    if (!EMAIL_RE.test(email)) {
+      invalidCount++;
+      return; // пропускаем явно некорректный email
+    }
+    const emailKey = email.toLowerCase();
+    if (seenEmails.has(emailKey)) {
+      duplicateCount++;
+      return; // такой email уже встречался в этом файле — пропускаем повтор
+    }
+    seenEmails.add(emailKey);
 
     const extra: Record<string, unknown> = {};
     headers.forEach((h, idx) => {
@@ -102,5 +119,9 @@ export async function parseRecipientsXlsx(buffer: Buffer): Promise<ParseResult> 
     });
   });
 
-  return { recipients, errors: [] };
+  const warnings: string[] = [];
+  if (invalidCount > 0) warnings.push(`Пропущено строк с некорректным email: ${invalidCount}`);
+  if (duplicateCount > 0) warnings.push(`Пропущено повторяющихся email внутри файла: ${duplicateCount}`);
+
+  return { recipients, errors: [], warnings };
 }

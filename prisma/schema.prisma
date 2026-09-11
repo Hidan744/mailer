@@ -150,6 +150,7 @@ model Letter {
   sentAt        DateTime?
   openedAt      DateTime?
   repliedAt     DateTime?
+  bouncedAt     DateTime? // письмо не доставлено (получен отказ от почтового сервера получателя)
 
   @@index([campaignId])
   @@index([recipientId])

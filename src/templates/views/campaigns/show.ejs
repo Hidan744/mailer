@@ -12,6 +12,9 @@
 <% if (query.imported) { %>
   <div class="alert alert-success">Импортировано получателей: <%= query.imported %></div>
 <% } %>
+<% if (query.warning) { %>
+  <div class="alert alert-warning"><%= query.warning %></div>
+<% } %>
 <% if (query.error) { %>
   <div class="alert alert-danger"><%= query.error %></div>
 <% } %>
@@ -60,6 +63,7 @@
           <tr><td>В очереди</td><td><%= stats.queued %></td></tr>
           <tr><td>Отправлено</td><td><%= stats.sent %></td></tr>
           <tr><td>Ошибок</td><td><%= stats.failed %></td></tr>
+          <tr><td>Не доставлено (отказ сервера)</td><td><%= stats.bounced %></td></tr>
           <tr><td>Открыто</td><td><%= stats.opened %></td></tr>
           <tr><td>Получено ответов</td><td><%= stats.replied %></td></tr>
           <tr><td>Писем с последней правки текста</td><td><%= campaign.sentSinceLastEdit %> / <%= campaign.rotationThreshold %></td></tr>

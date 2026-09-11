@@ -23,12 +23,13 @@ const upload = multer({
 });
 
 router.get("/", async (req, res) => {
-  const [mailAccounts, letterheads, numberings] = await Promise.all([
+  const [mailAccounts, letterheads, numberings, suppressions] = await Promise.all([
     prisma.mailAccountConfig.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.letterheadTemplate.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.numberingConfig.findMany(),
+    prisma.suppression.findMany({ orderBy: { createdAt: "desc" } }),
   ]);
-  res.render("settings/index", { mailAccounts, letterheads, numberings });
+  res.render("settings/index", { mailAccounts, letterheads, numberings, suppressions });
 });
 
 // --- Почтовый ящик (SMTP/IMAP) ---
@@ -128,6 +129,15 @@ router.post("/numbering", async (req, res) => {
 
 router.post("/numbering/:id/delete", async (req, res) => {
   await prisma.numberingConfig.delete({ where: { id: req.params.id } });
+  res.redirect("/settings");
+});
+
+// --- Отписавшиеся (глобальный список подавления рассылки) ---
+
+router.post("/suppressions/:email/delete", async (req, res) => {
+  await prisma.suppression.delete({ where: { email: req.params.email } }).catch(() => {
+    // уже удалён/не найден — не критично
+  });
   res.redirect("/settings");
 });
 

@@ -58,13 +58,14 @@ router.get("/:id", async (req, res) => {
   });
   if (!campaign) return res.status(404).render("404");
 
-  const [recipientsCount, sent, opened, replied, failed, queued] = await Promise.all([
+  const [recipientsCount, sent, opened, replied, failed, queued, bounced] = await Promise.all([
     prisma.recipient.count({ where: { campaignId: campaign.id } }),
     prisma.letter.count({ where: { campaignId: campaign.id, status: "sent" } }),
     prisma.letter.count({ where: { campaignId: campaign.id, openedAt: { not: null } } }),
     prisma.letter.count({ where: { campaignId: campaign.id, repliedAt: { not: null } } }),
     prisma.letter.count({ where: { campaignId: campaign.id, status: "failed" } }),
     prisma.letter.count({ where: { campaignId: campaign.id, status: "queued" } }),
+    prisma.letter.count({ where: { campaignId: campaign.id, bouncedAt: { not: null } } }),
   ]);
 
   const sampleRecipient = await prisma.recipient.findFirst({ where: { campaignId: campaign.id } });
@@ -86,7 +87,7 @@ router.get("/:id", async (req, res) => {
   res.render("campaigns/show", {
     campaign,
     recipientsCount,
-    stats: { sent, opened, replied, failed, queued },
+    stats: { sent, opened, replied, failed, queued, bounced },
     previewHtml,
   });
 });
@@ -96,16 +97,29 @@ router.post("/:id/recipients/import", upload.single("file"), async (req, res) =>
   if (!campaign) return res.status(404).render("404");
   if (!req.file) return res.redirect(`/campaigns/${campaign.id}?error=Файл не выбран`);
 
-  const { recipients, errors } = await parseRecipientsXlsx(req.file.buffer);
+  const { recipients, errors, warnings } = await parseRecipientsXlsx(req.file.buffer);
   if (errors.length > 0) {
     return res.redirect(`/campaigns/${campaign.id}?error=${encodeURIComponent(errors.join("; "))}`);
   }
 
-  await prisma.recipient.createMany({
-    data: recipients.map((r) => ({ ...r, campaignId: campaign.id, extra: r.extra as object })),
-  });
+  // Не дублируем получателей, у которых email уже есть в этой кампании (без учёта регистра) —
+  // частый случай при повторном импорте обновлённого списка.
+  const existing = await prisma.recipient.findMany({ where: { campaignId: campaign.id }, select: { email: true } });
+  const existingEmails = new Set(existing.map((r) => r.email.toLowerCase()));
+  const newRecipients = recipients.filter((r) => !existingEmails.has(r.email.toLowerCase()));
+  const alreadyInCampaign = recipients.length - newRecipients.length;
 
-  res.redirect(`/campaigns/${campaign.id}?imported=${recipients.length}`);
+  if (newRecipients.length > 0) {
+    await prisma.recipient.createMany({
+      data: newRecipients.map((r) => ({ ...r, campaignId: campaign.id, extra: r.extra as object })),
+    });
+  }
+
+  const allWarnings = [...warnings];
+  if (alreadyInCampaign > 0) allWarnings.push(`Уже были в этой кампании и не добавлены повторно: ${alreadyInCampaign}`);
+  const warningParam = allWarnings.length > 0 ? `&warning=${encodeURIComponent(allWarnings.join("; "))}` : "";
+
+  res.redirect(`/campaigns/${campaign.id}?imported=${newRecipients.length}${warningParam}`);
 });
 
 router.post("/:id/start", async (req, res) => {

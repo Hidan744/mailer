@@ -157,4 +157,35 @@
   </div>
 </div>
 
+<div class="card mb-4">
+  <div class="card-header">Отписавшиеся</div>
+  <div class="card-body">
+    <p class="text-muted small">
+      Эти email больше не получают писем ни из одной кампании. Отписаться можно только
+      по ссылке в письме — добавить сюда вручную нельзя, только снять отписку.
+    </p>
+    <% if (suppressions.length === 0) { %>
+      <p class="text-muted small mb-0">Пока никто не отписался.</p>
+    <% } else { %>
+    <table class="table table-sm">
+      <thead><tr><th>Email</th><th>Причина</th><th>Дата</th><th></th></tr></thead>
+      <tbody>
+        <% suppressions.forEach(function(s) { %>
+        <tr>
+          <td><%= s.email %></td>
+          <td><%= s.reason %></td>
+          <td><%= s.createdAt.toLocaleString("ru-RU") %></td>
+          <td>
+            <form method="post" action="/settings/suppressions/<%= encodeURIComponent(s.email) %>/delete" onsubmit="return confirm('Снять отписку? Этот email снова начнёт получать письма.')">
+              <button class="btn btn-sm btn-outline-secondary">Снять отписку</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <% } %>
+  </div>
+</div>
+
 <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

@@ -1,4 +1,5 @@
 import type { Campaign, LetterheadTemplate, Recipient } from "@prisma/client";
+import { applyPlaceholders } from "../lib/placeholders";
 
 function esc(s: string): string {
   return s
@@ -14,7 +15,7 @@ function formatRuDate(d: Date): string {
 
 export interface RenderLetterInput {
   campaign: Pick<Campaign, "subject" | "bodyHtml">;
-  recipient: Pick<Recipient, "company" | "position" | "surnameInitials" | "fullNamePatronymic">;
+  recipient: Pick<Recipient, "company" | "position" | "surnameInitials" | "fullNamePatronymic" | "email">;
   letterhead: Pick<LetterheadTemplate, "headerImageUrl" | "footerImageUrl" | "footerContactsText"> | null;
   outgoingNumber: string;
   sentDate: Date;
@@ -35,6 +36,7 @@ export interface RenderLetterInput {
 // Верстается таблицами (не flex/grid) — так вёрстка стабильно переживает Outlook/почтовые клиенты.
 export function renderLetterHtml(input: RenderLetterInput): string {
   const { campaign, recipient, letterhead, outgoingNumber, sentDate, trackingPixelUrl, unsubscribeUrl } = input;
+  const bodyHtml = applyPlaceholders(campaign.bodyHtml, recipient);
 
   const headerImg = letterhead?.headerImageUrl
     ? `<tr><td style="padding:0 0 16px 0;"><img src="${esc(
@@ -78,7 +80,7 @@ ${headerImg}
   Уважаемый ${esc(recipient.fullNamePatronymic)}!
 </td></tr>
 <tr><td style="padding-top:8px;line-height:1.5;">
-  ${campaign.bodyHtml}
+  ${bodyHtml}
 </td></tr>
 ${footerImg}
 ${footerContacts}
