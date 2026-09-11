@@ -20,6 +20,7 @@
       <nav class="nav-links">
         <a class="nav-link <%= currentPath === '/' ? 'is-active' : '' %>" href="/">Кампании</a>
         <a class="nav-link <%= currentPath.startsWith('/settings') ? 'is-active' : '' %>" href="/settings">Настройки</a>
+        <a class="nav-link <%= currentPath.startsWith('/audit') ? 'is-active' : '' %>" href="/audit">Журнал</a>
       </nav>
       <div class="topbar-user">
         <% if (typeof currentUsername !== 'undefined' && currentUsername) { %>

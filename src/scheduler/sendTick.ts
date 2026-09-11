@@ -60,6 +60,16 @@ async function processCampaignTick(
     if (minutesSince < campaign.intervalMinutes) return; // ещё не прошло нужного интервала
   }
 
+  // Дневной лимит писем с этого ящика (если задан в его настройках) — суммарно по всем
+  // кампаниям, использующим этот ящик, а не только текущей.
+  if (campaign.mailAccount.dailyLimit) {
+    const today = now.toISOString().slice(0, 10);
+    const sentToday = await prisma.letter.count({
+      where: { status: "sent", sentDate: today, campaign: { mailAccountId: campaign.mailAccountId } },
+    });
+    if (sentToday >= campaign.mailAccount.dailyLimit) return; // дневной лимит исчерпан
+  }
+
   // Пропускаем получателей, отписавшихся в ЛЮБОЙ кампании (регистр email не должен иметь
   // значения — "Ivan@x.ru" и "ivan@x.ru" один и тот же адрес).
   const suppressed = await prisma.suppression.findMany({ select: { email: true } });

@@ -4,3 +4,4 @@ dist/
 public/uploads/*
 !public/uploads/.gitkeep
 *.log
+backups/

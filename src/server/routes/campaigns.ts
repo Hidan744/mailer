@@ -6,6 +6,7 @@ import { parseRecipientsXlsx } from "../../import-export/recipients";
 import { buildCampaignReportXlsx } from "../../import-export/report";
 import { renderLetterHtml } from "../../mail/renderLetter";
 import { getCurrentVariant } from "../../lib/textVariants";
+import { logAudit } from "../../lib/audit";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -49,6 +50,7 @@ router.post("/", async (req, res) => {
       timezone: b.timezone || "Asia/Yekaterinburg",
     },
   });
+  await logAudit(req.session.username ?? "unknown", "campaign.create", { id: campaign.id, name: campaign.name });
   res.redirect(`/campaigns/${campaign.id}`);
 });
 
@@ -94,13 +96,16 @@ router.post("/:id/edit", async (req, res) => {
       timezone: b.timezone || "Asia/Yekaterinburg",
     },
   });
+  await logAudit(req.session.username ?? "unknown", "campaign.edit", { id: req.params.id, name: b.name });
   res.redirect(`/campaigns/${req.params.id}`);
 });
 
 router.post("/:id/delete", async (req, res) => {
+  const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id }, select: { name: true } });
   await prisma.campaign.delete({ where: { id: req.params.id } }).catch(() => {
     // уже удалена/не найдена — не критично
   });
+  await logAudit(req.session.username ?? "unknown", "campaign.delete", { id: req.params.id, name: campaign?.name });
   res.redirect("/");
 });
 
@@ -182,6 +187,10 @@ router.post("/:id/recipients/import", upload.single("file"), async (req, res) =>
   if (alreadyInCampaign > 0) allWarnings.push(`Уже были в этой кампании и не добавлены повторно: ${alreadyInCampaign}`);
   const warningParam = allWarnings.length > 0 ? `&warning=${encodeURIComponent(allWarnings.join("; "))}` : "";
 
+  await logAudit(req.session.username ?? "unknown", "campaign.import_recipients", {
+    id: campaign.id,
+    imported: newRecipients.length,
+  });
   res.redirect(`/campaigns/${campaign.id}?imported=${newRecipients.length}${warningParam}`);
 });
 
@@ -199,6 +208,7 @@ router.post("/:id/recipients/numbers", async (req, res) => {
       });
     })
   );
+  await logAudit(req.session.username ?? "unknown", "campaign.manual_numbers_set", { id: req.params.id });
   res.redirect(`/campaigns/${req.params.id}`);
 });
 
@@ -228,16 +238,19 @@ router.post("/:id/start", async (req, res) => {
   }
 
   await prisma.campaign.update({ where: { id: campaign.id }, data: { status: "running" } });
+  await logAudit(req.session.username ?? "unknown", "campaign.start", { id: campaign.id });
   res.redirect(`/campaigns/${campaign.id}`);
 });
 
 router.post("/:id/pause", async (req, res) => {
   await prisma.campaign.update({ where: { id: req.params.id }, data: { status: "paused_manual" } });
+  await logAudit(req.session.username ?? "unknown", "campaign.pause", { id: req.params.id });
   res.redirect(`/campaigns/${req.params.id}`);
 });
 
 router.post("/:id/resume", async (req, res) => {
   await prisma.campaign.update({ where: { id: req.params.id }, data: { status: "running" } });
+  await logAudit(req.session.username ?? "unknown", "campaign.resume", { id: req.params.id });
   res.redirect(`/campaigns/${req.params.id}`);
 });
 
@@ -252,6 +265,7 @@ router.post("/:id/retry-failed", async (req, res) => {
     data: { status: "queued", errorMessage: null },
   });
   await prisma.campaign.update({ where: { id: campaign.id }, data: { status: "running" } });
+  await logAudit(req.session.username ?? "unknown", "campaign.retry_failed", { id: campaign.id });
   res.redirect(`/campaigns/${campaign.id}`);
 });
 

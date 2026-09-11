@@ -13,7 +13,7 @@
       VK WorkMail. Для входящих ответов нужен доступ по IMAP к той же папке "Входящие".
     </p>
     <table class="table table-sm">
-      <thead><tr><th>Название</th><th>From</th><th>SMTP</th><th>IMAP</th><th></th></tr></thead>
+      <thead><tr><th>Название</th><th>From</th><th>SMTP</th><th>IMAP</th><th>Лимит/день</th><th></th></tr></thead>
       <tbody>
         <% mailAccounts.forEach(function(a) { %>
         <tr>
@@ -21,6 +21,7 @@
           <td><%= a.fromEmail %></td>
           <td><%= a.smtpHost %>:<%= a.smtpPort %></td>
           <td><%= a.imapHost || '—' %></td>
+          <td><%= a.dailyLimit || '— без лимита —' %></td>
           <td class="d-flex gap-1">
             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#editMailForm-<%= a.id %>">Изменить</button>
             <form method="post" action="/settings/mail-accounts/<%= a.id %>/delete" onsubmit="return confirm('Удалить?')">
@@ -29,7 +30,7 @@
           </td>
         </tr>
         <tr class="collapse" id="editMailForm-<%= a.id %>">
-          <td colspan="5">
+          <td colspan="6">
             <form method="post" action="/settings/mail-accounts/<%= a.id %>/update" class="p-2">
               <div class="row g-2">
                 <div class="col-md-4"><input class="form-control" name="name" placeholder="Название" value="<%= a.name %>" required /></div>
@@ -45,6 +46,10 @@
                 <div class="col-md-2 form-check mt-2"><input class="form-check-input" type="checkbox" name="imapSecure" <%= a.imapSecure ? 'checked' : '' %> /> <label class="form-check-label">TLS</label></div>
                 <div class="col-md-4"><input class="form-control" name="imapUser" placeholder="IMAP логин" value="<%= a.imapUser || '' %>" /></div>
                 <div class="col-md-4"><input class="form-control" name="imapPassword" type="password" placeholder="Новый IMAP пароль (пусто — оставить прежний)" /></div>
+                <div class="col-md-4">
+                  <input class="form-control" name="dailyLimit" type="number" min="1" placeholder="Дневной лимит писем" value="<%= a.dailyLimit || '' %>" />
+                  <div class="form-text">Суммарно по всем кампаниям с этого ящика. Пусто — без ограничения.</div>
+                </div>
               </div>
               <button class="btn btn-primary btn-sm mt-2">Сохранить изменения</button>
             </form>
@@ -69,6 +74,9 @@
         <div class="col-md-2 form-check mt-2"><input class="form-check-input" type="checkbox" name="imapSecure" checked /> <label class="form-check-label">TLS</label></div>
         <div class="col-md-4"><input class="form-control" name="imapUser" placeholder="IMAP логин" /></div>
         <div class="col-md-4"><input class="form-control" name="imapPassword" type="password" placeholder="IMAP пароль" /></div>
+        <div class="col-md-4">
+          <input class="form-control" name="dailyLimit" type="number" min="1" placeholder="Дневной лимит писем (необязательно)" />
+        </div>
       </div>
       <button class="btn btn-primary mt-3">Сохранить ящик</button>
     </form>

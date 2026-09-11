@@ -12,6 +12,7 @@ import campaignsRouter from "./routes/campaigns";
 import settingsRouter from "./routes/settings";
 import trackingRouter from "./routes/tracking";
 import authRouter from "./routes/auth";
+import auditRouter from "./routes/audit";
 import { requireAuth, bootstrapAdminUser } from "../lib/auth";
 import { startScheduler } from "../scheduler";
 
@@ -71,6 +72,7 @@ app.use(requireAuth);
 app.use("/", dashboardRouter);
 app.use("/campaigns", campaignsRouter);
 app.use("/settings", settingsRouter);
+app.use("/audit", auditRouter);
 // без префикса: короткие публичные ссылки для трекинг-пикселя и отписки в письмах
 app.use("/", trackingRouter);
 

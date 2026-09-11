@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../../lib/prisma";
 import { encryptSecret } from "../../lib/crypto";
+import { logAudit } from "../../lib/audit";
 import multer from "multer";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -36,7 +37,7 @@ router.get("/", async (req, res) => {
 
 router.post("/mail-accounts", async (req, res) => {
   const b = req.body;
-  await prisma.mailAccountConfig.create({
+  const account = await prisma.mailAccountConfig.create({
     data: {
       name: b.name,
       fromEmail: b.fromEmail,
@@ -51,8 +52,10 @@ router.post("/mail-accounts", async (req, res) => {
       imapSecure: b.imapSecure === "on",
       imapUser: b.imapUser || null,
       imapPasswordEnc: b.imapPassword ? encryptSecret(b.imapPassword) : null,
+      dailyLimit: b.dailyLimit ? Number(b.dailyLimit) : null,
     },
   });
+  await logAudit(req.session.username ?? "unknown", "mail_account.create", { id: account.id, name: account.name });
   res.redirect("/settings");
 });
 
@@ -75,8 +78,10 @@ router.post("/mail-accounts/:id/update", async (req, res) => {
       imapSecure: b.imapSecure === "on",
       imapUser: b.imapUser || null,
       ...(b.imapPassword ? { imapPasswordEnc: encryptSecret(b.imapPassword) } : {}),
+      dailyLimit: b.dailyLimit ? Number(b.dailyLimit) : null,
     },
   });
+  await logAudit(req.session.username ?? "unknown", "mail_account.update", { id: req.params.id, name: b.name });
   res.redirect("/settings");
 });
 
@@ -87,6 +92,7 @@ router.post("/mail-accounts/:id/delete", async (req, res) => {
     return res.redirect(`/settings?error=${encodeURIComponent(`Нельзя удалить — используется в кампании(ях): ${names}. Сначала выберите другой ящик в этих кампаниях (кнопка "Изменить").`)}`);
   }
   await prisma.mailAccountConfig.delete({ where: { id: req.params.id } });
+  await logAudit(req.session.username ?? "unknown", "mail_account.delete", { id: req.params.id });
   res.redirect("/settings");
 });
 
@@ -99,7 +105,7 @@ router.post(
     const files = req.files as Record<string, Express.Multer.File[]> | undefined;
     const headerFile = files?.headerImage?.[0];
     const footerFile = files?.footerImage?.[0];
-    await prisma.letterheadTemplate.create({
+    const letterhead = await prisma.letterheadTemplate.create({
       data: {
         name: req.body.name,
         headerImageUrl: headerFile ? `/uploads/${headerFile.filename}` : null,
@@ -107,6 +113,7 @@ router.post(
         footerContactsText: req.body.footerContactsText || null,
       },
     });
+    await logAudit(req.session.username ?? "unknown", "letterhead.create", { id: letterhead.id, name: letterhead.name });
     res.redirect("/settings");
   }
 );
@@ -118,6 +125,7 @@ router.post("/letterheads/:id/delete", async (req, res) => {
     return res.redirect(`/settings?error=${encodeURIComponent(`Нельзя удалить — используется в кампании(ях): ${names}. Сначала выберите другой бланк в этих кампаниях (кнопка "Изменить").`)}`);
   }
   await prisma.letterheadTemplate.delete({ where: { id: req.params.id } });
+  await logAudit(req.session.username ?? "unknown", "letterhead.delete", { id: req.params.id });
   res.redirect("/settings");
 });
 
@@ -125,7 +133,7 @@ router.post("/letterheads/:id/delete", async (req, res) => {
 
 router.post("/numbering", async (req, res) => {
   const b = req.body;
-  await prisma.numberingConfig.create({
+  const numbering = await prisma.numberingConfig.create({
     data: {
       name: b.name,
       template: b.template || "{prefix}/{counter}",
@@ -134,6 +142,7 @@ router.post("/numbering", async (req, res) => {
       resetPeriod: b.resetPeriod === "yearly" ? "yearly" : "never",
     },
   });
+  await logAudit(req.session.username ?? "unknown", "numbering.create", { id: numbering.id, name: numbering.name });
   res.redirect("/settings");
 });
 
@@ -149,6 +158,7 @@ router.post("/numbering/:id/update", async (req, res) => {
       resetPeriod: b.resetPeriod === "yearly" ? "yearly" : "never",
     },
   });
+  await logAudit(req.session.username ?? "unknown", "numbering.update", { id: req.params.id, name: b.name });
   res.redirect("/settings");
 });
 
@@ -159,6 +169,7 @@ router.post("/numbering/:id/delete", async (req, res) => {
     return res.redirect(`/settings?error=${encodeURIComponent(`Нельзя удалить — используется в кампании(ях): ${names}. Сначала выберите другую схему в этих кампаниях (кнопка "Изменить").`)}`);
   }
   await prisma.numberingConfig.delete({ where: { id: req.params.id } });
+  await logAudit(req.session.username ?? "unknown", "numbering.delete", { id: req.params.id });
   res.redirect("/settings");
 });
 
@@ -168,6 +179,7 @@ router.post("/suppressions/:email/delete", async (req, res) => {
   await prisma.suppression.delete({ where: { email: req.params.email } }).catch(() => {
     // уже удалён/не найден — не критично
   });
+  await logAudit(req.session.username ?? "unknown", "suppression.remove", { email: req.params.email });
   res.redirect("/settings");
 });
 

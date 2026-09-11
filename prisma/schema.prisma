@@ -129,6 +129,10 @@ model MailAccountConfig {
   imapUser      String?
   imapPasswordEnc String?
 
+  // Дневной лимит писем с этого ящика (суммарно по всем кампаниям, использующим его).
+  // Пусто — без ограничения. Защита от случайного запуска нескольких крупных кампаний разом.
+  dailyLimit    Int?
+
   createdAt     DateTime @default(now())
   campaigns     Campaign[]
 }

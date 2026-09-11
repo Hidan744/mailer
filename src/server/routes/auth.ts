@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../../lib/prisma";
 import { verifyPassword } from "../../lib/auth";
+import { logAudit } from "../../lib/audit";
 
 const router = Router();
 
@@ -54,12 +55,17 @@ router.post("/login", async (req, res) => {
     if (err) throw err;
     req.session.userId = user.id;
     req.session.username = user.username;
+    logAudit(user.username, "auth.login", {}).catch(() => {});
     res.redirect(nextUrl);
   });
 });
 
 router.post("/logout", (req, res) => {
-  req.session.destroy(() => res.redirect("/login"));
+  const username = req.session.username;
+  req.session.destroy(() => {
+    if (username) logAudit(username, "auth.logout", {}).catch(() => {});
+    res.redirect("/login");
+  });
 });
 
 export default router;

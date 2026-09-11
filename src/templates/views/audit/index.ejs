@@ -1,0 +1,24 @@
+<h1 class="h3 mb-4">Журнал действий</h1>
+
+<p class="text-muted small">
+  Кто и что менял в приложении — создание/изменение/удаление кампаний, настроек, входы в систему.
+  Показаны последние 300 записей, самые новые сверху.
+</p>
+
+<% if (events.length === 0) { %>
+  <p class="text-muted">Записей пока нет.</p>
+<% } else { %>
+<table class="table table-sm bg-white">
+  <thead><tr><th>Когда</th><th>Кто</th><th>Действие</th><th>Подробности</th></tr></thead>
+  <tbody>
+    <% events.forEach(function(e) { %>
+    <tr>
+      <td class="text-nowrap"><%= e.createdAt.toLocaleString("ru-RU") %></td>
+      <td><%= e.actor %></td>
+      <td><code><%= e.action %></code></td>
+      <td class="small text-muted"><%= e.details ? JSON.stringify(e.details) : '' %></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<% } %>
