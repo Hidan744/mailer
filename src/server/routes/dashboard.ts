@@ -5,6 +5,7 @@ const router = Router();
 
 router.get("/", async (req, res) => {
   const campaigns = await prisma.campaign.findMany({
+    where: { organizationId: req.session.organizationId },
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { recipients: true, letters: true } },

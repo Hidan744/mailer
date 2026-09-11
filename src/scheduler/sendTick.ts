@@ -70,9 +70,10 @@ async function processCampaignTick(
     if (sentToday >= campaign.mailAccount.dailyLimit) return; // дневной лимит исчерпан
   }
 
-  // Пропускаем получателей, отписавшихся в ЛЮБОЙ кампании (регистр email не должен иметь
-  // значения — "Ivan@x.ru" и "ivan@x.ru" один и тот же адрес).
-  const suppressed = await prisma.suppression.findMany({ select: { email: true } });
+  // Пропускаем получателей, отписавшихся в ЛЮБОЙ кампании ЭТОЙ ЖЕ организации (регистр
+  // email не должен иметь значения — "Ivan@x.ru" и "ivan@x.ru" один и тот же адрес).
+  // Отписка у одного клиента сервиса не блокирует переписку другого клиента.
+  const suppressed = await prisma.suppression.findMany({ where: { organizationId: campaign.organizationId }, select: { email: true } });
   const suppressedEmails = new Set(suppressed.map((s) => s.email.toLowerCase()));
 
   const nextLetter = await prisma.letter.findFirst({

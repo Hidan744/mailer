@@ -5,6 +5,7 @@ const router = Router();
 
 router.get("/", async (req, res) => {
   const events = await prisma.auditEvent.findMany({
+    where: { organizationId: req.session.organizationId },
     orderBy: { createdAt: "desc" },
     take: 300,
   });

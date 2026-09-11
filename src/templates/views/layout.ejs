@@ -22,12 +22,21 @@
       </a>
       <nav class="nav-links">
         <a class="nav-link <%= currentPath === '/' ? 'is-active' : '' %>" href="/">Кампании</a>
-        <a class="nav-link <%= currentPath.startsWith('/settings') ? 'is-active' : '' %>" href="/settings">Настройки</a>
+        <% if (currentRole === 'owner') { %>
+          <a class="nav-link <%= currentPath.startsWith('/settings') ? 'is-active' : '' %>" href="/settings">Настройки</a>
+        <% } %>
         <a class="nav-link <%= currentPath.startsWith('/audit') ? 'is-active' : '' %>" href="/audit">Журнал</a>
+        <% if (isSuperAdmin) { %>
+          <a class="nav-link <%= currentPath.startsWith('/admin') ? 'is-active' : '' %>" href="/admin">Организации</a>
+        <% } %>
       </nav>
       <div class="topbar-user">
         <% if (typeof currentUsername !== 'undefined' && currentUsername) { %>
-          <span class="user-chip"><%= currentUsername %></span>
+          <% if (typeof currentOrganizationName !== 'undefined' && currentOrganizationName) { %>
+            <span class="user-chip"><%= currentOrganizationName %> · <%= currentUsername %></span>
+          <% } else { %>
+            <span class="user-chip"><%= currentUsername %></span>
+          <% } %>
           <form method="post" action="/logout" class="m-0">
             <button class="btn-ghost">Выйти</button>
           </form>

@@ -43,7 +43,7 @@ router.post("/login", async (req, res) => {
       .render("login", { error: "Слишком много неудачных попыток входа. Попробуйте снова через 15 минут.", next: nextUrl, layout: false });
   }
 
-  const user = await prisma.user.findUnique({ where: { username } });
+  const user = await prisma.user.findUnique({ where: { username }, include: { organization: true } });
   const ok = user ? await verifyPassword(password, user.passwordHash) : false;
   if (!user || !ok) {
     registerFailedAttempt(ip);
@@ -55,15 +55,20 @@ router.post("/login", async (req, res) => {
     if (err) throw err;
     req.session.userId = user.id;
     req.session.username = user.username;
-    logAudit(user.username, "auth.login", {}).catch(() => {});
+    req.session.organizationId = user.organizationId;
+    req.session.organizationName = user.organization.name;
+    req.session.role = user.role;
+    req.session.isSuperAdmin = user.isSuperAdmin;
+    logAudit(user.username, "auth.login", {}, user.organizationId).catch(() => {});
     res.redirect(nextUrl);
   });
 });
 
 router.post("/logout", (req, res) => {
   const username = req.session.username;
+  const organizationId = req.session.organizationId;
   req.session.destroy(() => {
-    if (username) logAudit(username, "auth.logout", {}).catch(() => {});
+    if (username) logAudit(username, "auth.logout", {}, organizationId).catch(() => {});
     res.redirect("/login");
   });
 });

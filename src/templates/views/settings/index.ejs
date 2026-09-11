@@ -208,7 +208,7 @@
           <td><%= s.reason %></td>
           <td><%= s.createdAt.toLocaleString("ru-RU") %></td>
           <td>
-            <form method="post" action="/settings/suppressions/<%= encodeURIComponent(s.email) %>/delete" onsubmit="return confirm('Снять отписку? Этот email снова начнёт получать письма.')">
+            <form method="post" action="/settings/suppressions/<%= s.id %>/delete" onsubmit="return confirm('Снять отписку? Этот email снова начнёт получать письма.')">
               <button class="btn btn-sm btn-outline-secondary">Снять отписку</button>
             </form>
           </td>
@@ -217,5 +217,45 @@
       </tbody>
     </table>
     <% } %>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">Пользователи</div>
+  <div class="card-body">
+    <p class="text-muted small">
+      Владелец видит и может всё, включая эту страницу. Оператор работает только с
+      кампаниями — раздел "Настройки" ему недоступен.
+    </p>
+    <table class="table table-sm">
+      <thead><tr><th>Логин</th><th>Роль</th><th></th></tr></thead>
+      <tbody>
+        <% users.forEach(function(u) { %>
+        <tr>
+          <td><%= u.username %></td>
+          <td><%= u.role === 'owner' ? 'Владелец' : 'Оператор' %></td>
+          <td>
+            <form method="post" action="/settings/users/<%= u.id %>/delete" onsubmit="return confirm('Удалить пользователя «<%= u.username %>»?')">
+              <button class="btn btn-sm btn-outline-danger" <%= u.id === currentUserId ? 'disabled' : '' %>>Удалить</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#userForm">+ Добавить пользователя</button>
+    <form id="userForm" class="collapse mt-3" method="post" action="/settings/users">
+      <div class="row g-2">
+        <div class="col-md-4"><input class="form-control" name="username" placeholder="Логин" required /></div>
+        <div class="col-md-4"><input class="form-control" name="password" type="password" placeholder="Пароль" required /></div>
+        <div class="col-md-4">
+          <select class="form-select" name="role">
+            <option value="operator">Оператор — только кампании</option>
+            <option value="owner">Владелец — полный доступ</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary mt-3">Создать пользователя</button>
+    </form>
   </div>
 </div>

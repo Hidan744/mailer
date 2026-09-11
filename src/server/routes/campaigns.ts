@@ -12,15 +12,17 @@ const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 router.get("/new", async (req, res) => {
+  const organizationId = req.session.organizationId!;
   const [mailAccounts, letterheads, numberings] = await Promise.all([
-    prisma.mailAccountConfig.findMany(),
-    prisma.letterheadTemplate.findMany(),
-    prisma.numberingConfig.findMany(),
+    prisma.mailAccountConfig.findMany({ where: { organizationId } }),
+    prisma.letterheadTemplate.findMany({ where: { organizationId } }),
+    prisma.numberingConfig.findMany({ where: { organizationId } }),
   ]);
   res.render("campaigns/new", { mailAccounts, letterheads, numberings });
 });
 
 router.post("/", async (req, res) => {
+  const organizationId = req.session.organizationId!;
   const b = req.body;
 
   // Доп. варианты темы/текста (п.5 ТЗ) — если оператор заполнил хотя бы один,
@@ -34,6 +36,7 @@ router.post("/", async (req, res) => {
 
   const campaign = await prisma.campaign.create({
     data: {
+      organizationId,
       name: b.name,
       subject: b.subject,
       bodyHtml: b.bodyHtml,
@@ -50,16 +53,17 @@ router.post("/", async (req, res) => {
       timezone: b.timezone || "Asia/Yekaterinburg",
     },
   });
-  await logAudit(req.session.username ?? "unknown", "campaign.create", { id: campaign.id, name: campaign.name });
+  await logAudit(req.session.username ?? "unknown", "campaign.create", { id: campaign.id, name: campaign.name }, organizationId);
   res.redirect(`/campaigns/${campaign.id}`);
 });
 
 router.get("/:id/edit", async (req, res) => {
+  const organizationId = req.session.organizationId!;
   const [campaign, mailAccounts, letterheads, numberings] = await Promise.all([
-    prisma.campaign.findUnique({ where: { id: req.params.id } }),
-    prisma.mailAccountConfig.findMany(),
-    prisma.letterheadTemplate.findMany(),
-    prisma.numberingConfig.findMany(),
+    prisma.campaign.findFirst({ where: { id: req.params.id, organizationId } }),
+    prisma.mailAccountConfig.findMany({ where: { organizationId } }),
+    prisma.letterheadTemplate.findMany({ where: { organizationId } }),
+    prisma.numberingConfig.findMany({ where: { organizationId } }),
   ]);
   if (!campaign) return res.status(404).render("404");
   const variants = Array.isArray(campaign.textVariants)
@@ -69,6 +73,7 @@ router.get("/:id/edit", async (req, res) => {
 });
 
 router.post("/:id/edit", async (req, res) => {
+  const organizationId = req.session.organizationId!;
   const b = req.body;
 
   const extraVariants = [2, 3, 4, 5]
@@ -77,8 +82,8 @@ router.post("/:id/edit", async (req, res) => {
   const textVariants =
     extraVariants.length > 0 ? [{ subject: b.subject, bodyHtml: b.bodyHtml }, ...extraVariants] : Prisma.JsonNull;
 
-  await prisma.campaign.update({
-    where: { id: req.params.id },
+  const { count } = await prisma.campaign.updateMany({
+    where: { id: req.params.id, organizationId },
     data: {
       name: b.name,
       subject: b.subject,
@@ -96,22 +101,26 @@ router.post("/:id/edit", async (req, res) => {
       timezone: b.timezone || "Asia/Yekaterinburg",
     },
   });
-  await logAudit(req.session.username ?? "unknown", "campaign.edit", { id: req.params.id, name: b.name });
+  if (count === 0) return res.status(404).render("404");
+  await logAudit(req.session.username ?? "unknown", "campaign.edit", { id: req.params.id, name: b.name }, organizationId);
   res.redirect(`/campaigns/${req.params.id}`);
 });
 
 router.post("/:id/delete", async (req, res) => {
-  const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id }, select: { name: true } });
+  const organizationId = req.session.organizationId!;
+  const campaign = await prisma.campaign.findFirst({ where: { id: req.params.id, organizationId }, select: { name: true } });
+  if (!campaign) return res.status(404).render("404");
   await prisma.campaign.delete({ where: { id: req.params.id } }).catch(() => {
     // уже удалена/не найдена — не критично
   });
-  await logAudit(req.session.username ?? "unknown", "campaign.delete", { id: req.params.id, name: campaign?.name });
+  await logAudit(req.session.username ?? "unknown", "campaign.delete", { id: req.params.id, name: campaign.name }, organizationId);
   res.redirect("/");
 });
 
 router.get("/:id", async (req, res) => {
-  const campaign = await prisma.campaign.findUnique({
-    where: { id: req.params.id },
+  const organizationId = req.session.organizationId!;
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: req.params.id, organizationId },
     include: { letterhead: true, mailAccount: true, numbering: true },
   });
   if (!campaign) return res.status(404).render("404");
@@ -126,11 +135,11 @@ router.get("/:id", async (req, res) => {
       prisma.letter.count({ where: { campaignId: campaign.id, status: "queued" } }),
       prisma.letter.count({ where: { campaignId: campaign.id, bouncedAt: { not: null } } }),
       prisma.recipient.findMany({ where: { campaignId: campaign.id }, orderBy: { createdAt: "asc" } }),
-      prisma.suppression.findMany({ select: { email: true } }),
+      prisma.suppression.findMany({ where: { organizationId }, select: { email: true } }),
     ]);
 
-  // Сколько получателей ЭТОЙ кампании отписались (глобально, по email) — отдельно от общего
-  // списка отписавшихся в Настройках, тут именно в разрезе конкретной кампании.
+  // Сколько получателей ЭТОЙ кампании отписались (в рамках организации), отдельно от
+  // общего списка отписавшихся в Настройках, тут именно в разрезе конкретной кампании.
   const suppressedSet = new Set(suppressedEmails.map((s) => s.email.toLowerCase()));
   const unsubscribed = recipients.filter((r) => suppressedSet.has(r.email.toLowerCase())).length;
 
@@ -161,7 +170,8 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/:id/recipients/import", upload.single("file"), async (req, res) => {
-  const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
+  const organizationId = req.session.organizationId!;
+  const campaign = await prisma.campaign.findFirst({ where: { id: req.params.id, organizationId } });
   if (!campaign) return res.status(404).render("404");
   if (!req.file) return res.redirect(`/campaigns/${campaign.id}?error=Файл не выбран`);
 
@@ -190,15 +200,19 @@ router.post("/:id/recipients/import", upload.single("file"), async (req, res) =>
   await logAudit(req.session.username ?? "unknown", "campaign.import_recipients", {
     id: campaign.id,
     imported: newRecipients.length,
-  });
+  }, organizationId);
   res.redirect(`/campaigns/${campaign.id}?imported=${newRecipients.length}${warningParam}`);
 });
 
 // Ручные исходящие номера по получателям (например, у компании уже есть свой номер
 // входящего документа) — не трогает автосчётчик схемы нумерации для таких получателей.
 router.post("/:id/recipients/numbers", async (req, res) => {
+  const organizationId = req.session.organizationId!;
+  const campaign = await prisma.campaign.findFirst({ where: { id: req.params.id, organizationId }, select: { id: true } });
+  if (!campaign) return res.status(404).render("404");
+
   const b = req.body;
-  const recipients = await prisma.recipient.findMany({ where: { campaignId: req.params.id }, select: { id: true } });
+  const recipients = await prisma.recipient.findMany({ where: { campaignId: campaign.id }, select: { id: true } });
   await Promise.all(
     recipients.map((r) => {
       const raw = (b[`number_${r.id}`] ?? "").toString().trim();
@@ -208,12 +222,13 @@ router.post("/:id/recipients/numbers", async (req, res) => {
       });
     })
   );
-  await logAudit(req.session.username ?? "unknown", "campaign.manual_numbers_set", { id: req.params.id });
-  res.redirect(`/campaigns/${req.params.id}`);
+  await logAudit(req.session.username ?? "unknown", "campaign.manual_numbers_set", { id: campaign.id }, organizationId);
+  res.redirect(`/campaigns/${campaign.id}`);
 });
 
 router.post("/:id/start", async (req, res) => {
-  const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
+  const organizationId = req.session.organizationId!;
+  const campaign = await prisma.campaign.findFirst({ where: { id: req.params.id, organizationId } });
   if (!campaign) return res.status(404).render("404");
   if (!campaign.mailAccountId || !campaign.numberingId) {
     return res.redirect(`/campaigns/${campaign.id}?error=Укажите почтовый ящик и схему нумерации перед запуском`);
@@ -238,26 +253,31 @@ router.post("/:id/start", async (req, res) => {
   }
 
   await prisma.campaign.update({ where: { id: campaign.id }, data: { status: "running" } });
-  await logAudit(req.session.username ?? "unknown", "campaign.start", { id: campaign.id });
+  await logAudit(req.session.username ?? "unknown", "campaign.start", { id: campaign.id }, organizationId);
   res.redirect(`/campaigns/${campaign.id}`);
 });
 
 router.post("/:id/pause", async (req, res) => {
-  await prisma.campaign.update({ where: { id: req.params.id }, data: { status: "paused_manual" } });
-  await logAudit(req.session.username ?? "unknown", "campaign.pause", { id: req.params.id });
+  const organizationId = req.session.organizationId!;
+  const { count } = await prisma.campaign.updateMany({ where: { id: req.params.id, organizationId }, data: { status: "paused_manual" } });
+  if (count === 0) return res.status(404).render("404");
+  await logAudit(req.session.username ?? "unknown", "campaign.pause", { id: req.params.id }, organizationId);
   res.redirect(`/campaigns/${req.params.id}`);
 });
 
 router.post("/:id/resume", async (req, res) => {
-  await prisma.campaign.update({ where: { id: req.params.id }, data: { status: "running" } });
-  await logAudit(req.session.username ?? "unknown", "campaign.resume", { id: req.params.id });
+  const organizationId = req.session.organizationId!;
+  const { count } = await prisma.campaign.updateMany({ where: { id: req.params.id, organizationId }, data: { status: "running" } });
+  if (count === 0) return res.status(404).render("404");
+  await logAudit(req.session.username ?? "unknown", "campaign.resume", { id: req.params.id }, organizationId);
   res.redirect(`/campaigns/${req.params.id}`);
 });
 
 // Возврат в очередь писем, не ушедших из-за временной ошибки (например недоступность SMTP) —
 // без этого единственный способ повторить отправку был вручную править БД.
 router.post("/:id/retry-failed", async (req, res) => {
-  const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
+  const organizationId = req.session.organizationId!;
+  const campaign = await prisma.campaign.findFirst({ where: { id: req.params.id, organizationId } });
   if (!campaign) return res.status(404).render("404");
 
   await prisma.letter.updateMany({
@@ -265,16 +285,17 @@ router.post("/:id/retry-failed", async (req, res) => {
     data: { status: "queued", errorMessage: null },
   });
   await prisma.campaign.update({ where: { id: campaign.id }, data: { status: "running" } });
-  await logAudit(req.session.username ?? "unknown", "campaign.retry_failed", { id: campaign.id });
+  await logAudit(req.session.username ?? "unknown", "campaign.retry_failed", { id: campaign.id }, organizationId);
   res.redirect(`/campaigns/${campaign.id}`);
 });
 
 // Чек-пойнт ротации текста (п.5 ТЗ): оператор правит тему/текст (или подтверждает как есть)
 // и явно продолжает рассылку — счётчик sentSinceLastEdit обнуляется.
 router.post("/:id/confirm-edit", async (req, res) => {
+  const organizationId = req.session.organizationId!;
   const b = req.body;
-  await prisma.campaign.update({
-    where: { id: req.params.id },
+  const { count } = await prisma.campaign.updateMany({
+    where: { id: req.params.id, organizationId },
     data: {
       subject: b.subject,
       bodyHtml: b.bodyHtml,
@@ -282,11 +303,13 @@ router.post("/:id/confirm-edit", async (req, res) => {
       status: "running",
     },
   });
+  if (count === 0) return res.status(404).render("404");
   res.redirect(`/campaigns/${req.params.id}`);
 });
 
 router.get("/:id/report.xlsx", async (req, res) => {
-  const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
+  const organizationId = req.session.organizationId!;
+  const campaign = await prisma.campaign.findFirst({ where: { id: req.params.id, organizationId } });
   if (!campaign) return res.status(404).render("404");
   const buffer = await buildCampaignReportXlsx(campaign.id);
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

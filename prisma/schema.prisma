@@ -1,5 +1,9 @@
 // Схема БД для приложения веерной рассылки именных писем.
 // Вся инфраструктура (эта БД, приложение, почтовый сервер) размещается на территории РФ.
+//
+// Мультитенантность: каждый клиент (Organization) видит только свои почтовые ящики,
+// кампании, получателей и т.д. Суперадмин (User.isSuperAdmin) создаёт организации
+// и их первых пользователей вручную через /admin — публичной регистрации нет.
 
 generator client {
   provider = "prisma-client-js"
@@ -25,10 +29,34 @@ enum LetterStatus {
   bounced
 }
 
+// Роль внутри организации: owner может управлять ящиками/бланками/схемами нумерации
+// и пользователями организации, operator — только работать с кампаниями.
+enum OrgRole {
+  owner
+  operator
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users               User[]
+  campaigns           Campaign[]
+  letterheadTemplates LetterheadTemplate[]
+  numberingConfigs    NumberingConfig[]
+  mailAccounts        MailAccountConfig[]
+  suppressions        Suppression[]
+  auditEvents         AuditEvent[]
+}
+
 model Campaign {
   id          String         @id @default(uuid())
   name        String
   status      CampaignStatus @default(draft)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   subject     String
   bodyHtml    String
@@ -63,16 +91,22 @@ model Campaign {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([organizationId])
 }
 
 model LetterheadTemplate {
   id            String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name          String
   headerImageUrl String?
   footerImageUrl String?
   footerContactsText String?
   createdAt     DateTime @default(now())
   campaigns     Campaign[]
+
+  @@index([organizationId])
 }
 
 model Recipient {
@@ -102,6 +136,8 @@ model Recipient {
 
 model NumberingConfig {
   id           String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name         String
   template     String   @default("{prefix}/{counter}") // напр. "0210/{counter}"
   prefix       String   @default("")
@@ -109,10 +145,14 @@ model NumberingConfig {
   resetPeriod  String   @default("never") // never | yearly
   lastResetYear Int?
   campaigns    Campaign[]
+
+  @@index([organizationId])
 }
 
 model MailAccountConfig {
   id            String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name          String
   fromEmail     String
   fromName      String?
@@ -135,6 +175,8 @@ model MailAccountConfig {
 
   createdAt     DateTime @default(now())
   campaigns     Campaign[]
+
+  @@index([organizationId])
 }
 
 model Letter {
@@ -170,19 +212,38 @@ model User {
   id           String   @id @default(uuid())
   username     String   @unique
   passwordHash String
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           OrgRole      @default(owner)
+
+  // Может заходить в /admin и создавать новые организации (сама платформа, не клиенты).
+  isSuperAdmin Boolean @default(false)
+
   createdAt    DateTime @default(now())
+
+  @@index([organizationId])
 }
 
 model Suppression {
-  email     String   @id
-  reason    String   @default("unsubscribed")
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  reason         String   @default("unsubscribed")
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, email])
 }
 
 model AuditEvent {
   id        String   @id @default(uuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   actor     String   @default("system")
   action    String
   details   Json?
   createdAt DateTime @default(now())
+
+  @@index([organizationId])
 }

@@ -13,7 +13,8 @@ import settingsRouter from "./routes/settings";
 import trackingRouter from "./routes/tracking";
 import authRouter from "./routes/auth";
 import auditRouter from "./routes/audit";
-import { requireAuth, bootstrapAdminUser } from "../lib/auth";
+import adminRouter from "./routes/admin";
+import { requireAuth, requireOwner, requireSuperAdmin, bootstrapAdminUser } from "../lib/auth";
 import { startScheduler } from "../scheduler";
 
 const app = express();
@@ -62,6 +63,10 @@ app.use((req, res, next) => {
   res.locals.currentPath = req.path;
   res.locals.query = req.query;
   res.locals.currentUsername = req.session.username ?? null;
+  res.locals.currentUserId = req.session.userId ?? null;
+  res.locals.currentOrganizationName = req.session.organizationName ?? null;
+  res.locals.currentRole = req.session.role ?? null;
+  res.locals.isSuperAdmin = req.session.isSuperAdmin ?? false;
   next();
 });
 
@@ -71,8 +76,9 @@ app.use(requireAuth);
 
 app.use("/", dashboardRouter);
 app.use("/campaigns", campaignsRouter);
-app.use("/settings", settingsRouter);
+app.use("/settings", requireOwner, settingsRouter);
 app.use("/audit", auditRouter);
+app.use("/admin", requireSuperAdmin, adminRouter);
 // без префикса: короткие публичные ссылки для трекинг-пикселя и отписки в письмах
 app.use("/", trackingRouter);
 

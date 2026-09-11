@@ -1,0 +1,42 @@
+<h1 class="h3 mb-4">Организации (суперадмин)</h1>
+
+<% if (error) { %>
+  <div class="alert alert-danger"><%= error %></div>
+<% } %>
+
+<div class="card mb-4">
+  <div class="card-header">Клиенты сервиса</div>
+  <div class="card-body">
+    <table class="table table-sm">
+      <thead><tr><th>Название</th><th>Пользователей</th><th>Кампаний</th><th>Создана</th></tr></thead>
+      <tbody>
+        <% organizations.forEach(function(o) { %>
+        <tr>
+          <td><%= o.name %></td>
+          <td><%= o._count.users %></td>
+          <td><%= o._count.campaigns %></td>
+          <td><%= o.createdAt.toLocaleString("ru-RU") %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">Новый клиент</div>
+  <div class="card-body">
+    <p class="text-muted small">
+      Создаёт отдельную организацию (изолированные данные — ящики, кампании, получатели)
+      и первого пользователя-владельца для неё. Логин/пароль передайте клиенту сами.
+    </p>
+    <form method="post" action="/admin/organizations">
+      <div class="row g-2">
+        <div class="col-md-4"><input class="form-control" name="orgName" placeholder="Название организации (клиента)" required /></div>
+        <div class="col-md-4"><input class="form-control" name="username" placeholder="Логин владельца" required /></div>
+        <div class="col-md-4"><input class="form-control" name="password" type="password" placeholder="Пароль владельца" required /></div>
+      </div>
+      <button class="btn btn-primary mt-3">Создать организацию</button>
+    </form>
+  </div>
+</div>

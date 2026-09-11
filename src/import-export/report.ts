@@ -9,7 +9,9 @@ export async function buildCampaignReportXlsx(campaignId: string): Promise<Excel
     orderBy: { queuedAt: "asc" },
   });
   const suppressedEmails = new Set(
-    (await prisma.suppression.findMany({ select: { email: true } })).map((s) => s.email.toLowerCase())
+    (await prisma.suppression.findMany({ where: { organizationId: campaign.organizationId }, select: { email: true } })).map((s) =>
+      s.email.toLowerCase()
+    )
   );
 
   const workbook = new ExcelJS.Workbook();

@@ -27,16 +27,16 @@ router.get("/t/:token.gif", async (req, res) => {
 async function suppressByToken(token: string) {
   const letter = await prisma.letter.findUnique({
     where: { trackingToken: token },
-    include: { recipient: true },
+    include: { recipient: true, campaign: { select: { organizationId: true } } },
   });
   if (!letter) return null;
 
-  // Глобальный список отписавшихся (по email) — проверяется планировщиком перед отправкой
-  // в ЛЮБОЙ кампании, не только в этой.
+  // Список отписавшихся организации (по email) — проверяется планировщиком перед отправкой
+  // в ЛЮБОЙ кампании этой же организации, не только в этой.
   await prisma.suppression.upsert({
-    where: { email: letter.recipient.email },
+    where: { organizationId_email: { organizationId: letter.campaign.organizationId, email: letter.recipient.email } },
     update: {},
-    create: { email: letter.recipient.email, reason: "unsubscribed" },
+    create: { organizationId: letter.campaign.organizationId, email: letter.recipient.email, reason: "unsubscribed" },
   });
   if (letter.status === "queued") {
     await prisma.letter.update({
