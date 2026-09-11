@@ -12,14 +12,17 @@ export async function runImapPollTick(now: Date = new Date()): Promise<void> {
 
   for (const account of accounts) {
     try {
-      await pollAccount(account, now);
+      const { checked, matched } = await pollAccount(account, now);
+      console.log(
+        `IMAP-поллинг (${account.name}): писем в ожидании ответа — ${checked}, писем в INBOX просмотрено, новых ответов сопоставлено — ${matched}`
+      );
     } catch (err) {
       console.error(`Ошибка опроса IMAP для ящика ${account.name}:`, err);
     }
   }
 }
 
-async function pollAccount(account: MailAccountConfig, now: Date) {
+async function pollAccount(account: MailAccountConfig, now: Date): Promise<{ checked: number; matched: number }> {
   const pendingLetters = await prisma.letter.findMany({
     where: {
       status: "sent",
@@ -29,9 +32,10 @@ async function pollAccount(account: MailAccountConfig, now: Date) {
     },
     select: { id: true, messageId: true },
   });
-  if (pendingLetters.length === 0) return;
+  if (pendingLetters.length === 0) return { checked: 0, matched: 0 };
 
   const pendingByMessageId = new Map(pendingLetters.map((l) => [l.messageId as string, l.id]));
+  let matched = 0;
 
   const client = new ImapFlow({
     host: account.imapHost as string,
@@ -59,6 +63,7 @@ async function pollAccount(account: MailAccountConfig, now: Date) {
           if (headerText.includes(messageId)) {
             await prisma.letter.update({ where: { id: letterId }, data: { repliedAt: now } });
             pendingByMessageId.delete(messageId);
+            matched++;
           }
         }
       }
@@ -68,4 +73,6 @@ async function pollAccount(account: MailAccountConfig, now: Date) {
   } finally {
     await client.logout();
   }
+
+  return { checked: pendingLetters.length, matched };
 }
