@@ -28,6 +28,21 @@ export interface ParseResult {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Excel/ExcelJS отдаёт значение ячейки не всегда простой строкой: гиперссылка (например,
+// когда Excel сам подчеркнул email как mailto:) приходит объектом { text, hyperlink },
+// форматированный текст — { richText: [...] }, формула — { formula, result }. Достаём
+// реальный текст в каждом из этих случаев, а не просто String(val).
+function cellText(val: unknown): string {
+  if (val === null || val === undefined) return "";
+  if (typeof val === "object") {
+    const v = val as { text?: unknown; richText?: Array<{ text?: unknown }>; result?: unknown };
+    if (typeof v.text === "string") return v.text.trim();
+    if (Array.isArray(v.richText)) return v.richText.map((r) => String(r.text ?? "")).join("").trim();
+    if (v.result !== undefined && v.result !== null) return String(v.result).trim();
+  }
+  return String(val).trim();
+}
+
 function normalizeHeader(h: string): string {
   return h.trim().toLowerCase();
 }
@@ -54,7 +69,7 @@ export async function parseRecipientsXlsx(buffer: Buffer): Promise<ParseResult> 
   const headerRow = sheet.getRow(1);
   const headers: string[] = [];
   headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-    headers[colNumber - 1] = String(cell.value ?? "");
+    headers[colNumber - 1] = cellText(cell.value);
   });
 
   const colMap = matchColumn(headers);
@@ -82,8 +97,7 @@ export async function parseRecipientsXlsx(buffer: Buffer): Promise<ParseResult> 
     const getCell = (field: keyof typeof COLUMN_ALIASES) => {
       const idx = colMap[field];
       if (idx === undefined) return "";
-      const val = row.getCell(idx + 1).value;
-      return val === null || val === undefined ? "" : String(val).trim();
+      return cellText(row.getCell(idx + 1).value);
     };
 
     const email = getCell("email");
