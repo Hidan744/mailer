@@ -1,0 +1,40 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#26221b"/>
+      <stop offset="55%" stop-color="#1a1712"/>
+      <stop offset="100%" stop-color="#0d0c0a"/>
+    </linearGradient>
+    <radialGradient id="glossGrad" cx="30%" cy="18%" r="55%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="envGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fdf8ee"/>
+      <stop offset="100%" stop-color="#efe4c9"/>
+    </linearGradient>
+    <linearGradient id="champGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0bd72"/>
+      <stop offset="100%" stop-color="#a3792f"/>
+    </linearGradient>
+    <clipPath id="squircle">
+      <rect x="8" y="8" width="496" height="496" rx="118" ry="118"/>
+    </clipPath>
+  </defs>
+
+  <rect x="8" y="8" width="496" height="496" rx="118" ry="118" fill="url(#bgGrad)"/>
+  <rect x="8" y="8" width="496" height="496" rx="118" ry="118" fill="url(#glossGrad)" clip-path="url(#squircle)"/>
+
+  <path d="M 118 322 C 168 392, 320 398, 392 300"
+        fill="none" stroke="url(#champGrad)" stroke-width="30"
+        stroke-linecap="round" clip-path="url(#squircle)"/>
+
+  <rect x="146" y="182" width="228" height="150" rx="16" ry="16" fill="url(#envGrad)" stroke="#14120f" stroke-width="5"/>
+  <path d="M 150 188 L 260 280 L 370 188" fill="none" stroke="#14120f" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M 150 188 L 260 280 L 370 188 L 370 200 L 260 292 L 150 200 Z" fill="#e7dcc0" opacity="0.55"/>
+
+  <g transform="translate(300,236) rotate(-18)">
+    <path d="M 0 0 L 148 -34 L 20 52 Z" fill="url(#champGrad)" stroke="#14120f" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M 0 0 L 60 8 L 20 52 Z" fill="#8a6526" opacity="0.5"/>
+  </g>
+</svg>
