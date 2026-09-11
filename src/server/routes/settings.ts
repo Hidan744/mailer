@@ -55,6 +55,30 @@ router.post("/mail-accounts", async (req, res) => {
   res.redirect("/settings");
 });
 
+router.post("/mail-accounts/:id/update", async (req, res) => {
+  const b = req.body;
+  await prisma.mailAccountConfig.update({
+    where: { id: req.params.id },
+    data: {
+      name: b.name,
+      fromEmail: b.fromEmail,
+      fromName: b.fromName || null,
+      smtpHost: b.smtpHost,
+      smtpPort: Number(b.smtpPort) || 465,
+      smtpSecure: b.smtpSecure === "on",
+      smtpUser: b.smtpUser,
+      // Пароль меняем только если ввели новый — пустое поле оставляет прежний зашифрованный пароль.
+      ...(b.smtpPassword ? { smtpPasswordEnc: encryptSecret(b.smtpPassword) } : {}),
+      imapHost: b.imapHost || null,
+      imapPort: b.imapPort ? Number(b.imapPort) : 993,
+      imapSecure: b.imapSecure === "on",
+      imapUser: b.imapUser || null,
+      ...(b.imapPassword ? { imapPasswordEnc: encryptSecret(b.imapPassword) } : {}),
+    },
+  });
+  res.redirect("/settings");
+});
+
 router.post("/mail-accounts/:id/delete", async (req, res) => {
   await prisma.mailAccountConfig.delete({ where: { id: req.params.id } });
   res.redirect("/settings");

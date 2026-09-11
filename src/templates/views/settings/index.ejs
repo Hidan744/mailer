@@ -17,9 +17,32 @@
           <td><%= a.fromEmail %></td>
           <td><%= a.smtpHost %>:<%= a.smtpPort %></td>
           <td><%= a.imapHost || '—' %></td>
-          <td>
+          <td class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#editMailForm-<%= a.id %>">Изменить</button>
             <form method="post" action="/settings/mail-accounts/<%= a.id %>/delete" onsubmit="return confirm('Удалить?')">
               <button class="btn btn-sm btn-outline-danger">Удалить</button>
+            </form>
+          </td>
+        </tr>
+        <tr class="collapse" id="editMailForm-<%= a.id %>">
+          <td colspan="5">
+            <form method="post" action="/settings/mail-accounts/<%= a.id %>/update" class="p-2">
+              <div class="row g-2">
+                <div class="col-md-4"><input class="form-control" name="name" placeholder="Название" value="<%= a.name %>" required /></div>
+                <div class="col-md-4"><input class="form-control" name="fromEmail" type="email" placeholder="From email" value="<%= a.fromEmail %>" required /></div>
+                <div class="col-md-4"><input class="form-control" name="fromName" placeholder="Имя отправителя" value="<%= a.fromName || '' %>" /></div>
+                <div class="col-md-4"><input class="form-control" name="smtpHost" placeholder="SMTP host" value="<%= a.smtpHost %>" required /></div>
+                <div class="col-md-2"><input class="form-control" name="smtpPort" placeholder="Порт" value="<%= a.smtpPort %>" required /></div>
+                <div class="col-md-2 form-check mt-2"><input class="form-check-input" type="checkbox" name="smtpSecure" <%= a.smtpSecure ? 'checked' : '' %> /> <label class="form-check-label">TLS</label></div>
+                <div class="col-md-4"><input class="form-control" name="smtpUser" placeholder="SMTP логин" value="<%= a.smtpUser %>" required /></div>
+                <div class="col-md-4"><input class="form-control" name="smtpPassword" type="password" placeholder="Новый SMTP пароль (пусто — оставить прежний)" /></div>
+                <div class="col-md-4"><input class="form-control" name="imapHost" placeholder="IMAP host" value="<%= a.imapHost || '' %>" /></div>
+                <div class="col-md-2"><input class="form-control" name="imapPort" placeholder="Порт" value="<%= a.imapPort %>" /></div>
+                <div class="col-md-2 form-check mt-2"><input class="form-check-input" type="checkbox" name="imapSecure" <%= a.imapSecure ? 'checked' : '' %> /> <label class="form-check-label">TLS</label></div>
+                <div class="col-md-4"><input class="form-control" name="imapUser" placeholder="IMAP логин" value="<%= a.imapUser || '' %>" /></div>
+                <div class="col-md-4"><input class="form-control" name="imapPassword" type="password" placeholder="Новый IMAP пароль (пусто — оставить прежний)" /></div>
+              </div>
+              <button class="btn btn-primary btn-sm mt-2">Сохранить изменения</button>
             </form>
           </td>
         </tr>
