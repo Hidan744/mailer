@@ -61,15 +61,15 @@ a:hover { color: var(--accent); text-decoration: underline; }
 }
 .brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.55rem;
   color: #f3ecd8 !important;
   text-decoration: none !important;
   font-family: "Yeseva One", Georgia, serif;
 }
 .brand-mark {
-  width: 2rem;
-  height: 2rem;
+  width: 2.9rem;
+  height: 2.9rem;
   border-radius: 22%;
   display: inline-block;
 }
