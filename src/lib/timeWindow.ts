@@ -41,7 +41,10 @@ function toMinutes(hhmm: string): number {
 
 export function isWithinSendingWindow(now: Date, cfg: SendWindowConfig): boolean {
   const zoned = getZonedTime(now, cfg.timezone);
-  if (zoned.weekday === 0 || zoned.weekday === 6) return false; // выходные
+  // ALLOW_WEEKEND_SEND=true в .env — разовый обход ограничения на выходные (для теста).
+  // По умолчанию не задано — поведение как раньше, будни-only.
+  const allowWeekendSend = process.env.ALLOW_WEEKEND_SEND === "true";
+  if (!allowWeekendSend && (zoned.weekday === 0 || zoned.weekday === 6)) return false; // выходные
 
   const start = toMinutes(cfg.sendWindowStart);
   const end = toMinutes(cfg.sendWindowEnd);
